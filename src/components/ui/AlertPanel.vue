@@ -1,34 +1,31 @@
 <template>
   <el-card>
     <h3>故障预警</h3>
-    
-    <!-- 使用外层 template 包裹 v-if 和 v-for -->
-    <template v-if="alerts.length > 0">
-      <el-alert 
-        v-for="(alert, index) in alerts" 
-        :key="index" 
-        type="error" 
-        show-icon
-      >
-        {{ alert.message }}
-      </el-alert>
-    </template>
 
-    <!-- v-else 移动到外层 -->
+    <el-alert v-if="operationClass !== 'normal'" type="error" show-icon>
+      当前故障：{{ operationClass }}
+    </el-alert>
+
     <el-alert v-else type="success" show-icon>
-      系统正常运行
+      无
     </el-alert>
   </el-card>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { defineProps } from 'vue';
 
-const alerts = ref([{ message: '姿态异常：偏航角超出正常范围！' }]);
+// **从父组件接收 operationClass**
+defineProps({
+  operationClass: {
+    type: String,
+    default: "normal"
+  }
+});
 </script>
 
 <style scoped>
 .el-card {
-    margin-bottom: 10px;
+  margin-bottom: 10px;
 }
 </style>

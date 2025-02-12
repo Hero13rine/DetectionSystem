@@ -6,7 +6,7 @@
         <h3>参数设置</h3>
         <el-form label-width="120px">
           <el-form-item label="WebSocket 服务器">
-            <el-input v-model="websocketUrl" placeholder="ws://localhost:8080"></el-input>
+            <el-input v-model="websocketUrl" placeholder="ws://localhost:8765"></el-input>
           </el-form-item>
           <el-form-item label="故障预警阈值">
             <el-slider v-model="threshold" :min="0" :max="100"></el-slider>
@@ -23,12 +23,13 @@
 <script setup>
 import { ref } from 'vue';
 
-const websocketUrl = ref('ws://localhost:8080');
-const threshold = ref(50);
+const websocketUrl = ref(localStorage.getItem('websocketUrl') || 'ws://localhost:8765');
+const threshold = ref(localStorage.getItem('threshold') || 50);
 
 const saveSettings = () => {
-  console.log('保存的 WebSocket 地址:', websocketUrl.value);
-  console.log('保存的故障预警阈值:', threshold.value);
+  localStorage.setItem('websocketUrl', websocketUrl.value);
+  localStorage.setItem('threshold', threshold.value);
+  location.reload(); // **刷新页面，让 WebSocket 重新连接**
 };
 </script>
 
