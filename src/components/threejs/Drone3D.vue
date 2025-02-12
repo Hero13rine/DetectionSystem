@@ -1,11 +1,11 @@
 <template>
     <div ref="threeContainer" class="three-container"></div>
-    
+
     <!-- 3D 视角控制 UI -->
     <div class="camera-controls">
         <el-radio-group v-model="cameraMode" @change="updateCameraMode">
-            <el-radio-button label="follow">尾随模式</el-radio-button>
             <el-radio-button label="free">自由模式</el-radio-button>
+            <el-radio-button label="follow">尾随模式</el-radio-button>
             <el-radio-button label="broadcast">自动导播</el-radio-button>
             <el-radio-button label="track">轨迹观察</el-radio-button>
         </el-radio-group>
@@ -20,11 +20,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const threeContainer = ref(null);
 let scene, camera, renderer, controls, airplane;
-const cameraMode = ref("follow"); // 默认尾随模式
+const cameraMode = ref("free"); // 默认自由模式
 let autoBroadcastInterval = null; //自动
 let trailVertices = []; // 用于记录轨迹点
 let trailGeometry, trailMaterial, trailLine; // 用于绘制轨迹的几何体、材质和线条
-let smoothFactor = 0.1;  // 平滑移动比例
+let smoothFactor = 0.2;  // 平滑移动比例
 
 
 // **初始化 Three.js 场景**
@@ -64,7 +64,15 @@ const initScene = () => {
 
     // **轨迹设置**
     trailGeometry = new THREE.BufferGeometry();
-    trailMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    trailMaterial = new THREE.LineBasicMaterial({
+        color: 0xff0000,
+        linewidth: 2,
+        depthWrite: false, // 允许轨迹在线条后面仍然可见
+        polygonOffset: true,  // 启用偏移
+        polygonOffsetFactor: -1,  // 让轨迹稍微“浮起”
+        polygonOffsetUnits: -1
+    });
+
     trailLine = new THREE.Line(trailGeometry, trailMaterial);
     scene.add(trailLine);
 
@@ -79,7 +87,7 @@ const initScene = () => {
 
 
     // 默认启用尾随模式
-    updateCameraMode("follow");
+    updateCameraMode("free");
 };
 
 // **动画循环**
@@ -96,10 +104,11 @@ const loadModel = () => {
     const loader = new FBXLoader();
     loader.load(jetPath, (fbx) => {
         fbx.scale.set(0.5, 0.5, 0.5);
-        fbx.position.set(8, 1, 10); // 将无人机模型放置在原点
+        fbx.position.set(0, 1, 0); // 将无人机模型放置在原点
 
-        fbx.rotation.set(0, Math.PI / 2, 0);
-
+        fbx.rotation.set(0.2 ,0 , 0);
+        //fbx.rotation.set(0, Math.PI / 2, 0);
+        //fbx.rotation.set(0, 0, Math.PI / 2);
         scene.add(fbx);
         airplane = fbx;
     }, undefined, (error) => {
@@ -114,7 +123,7 @@ const updateCameraMode = (mode) => {
         //followCamera = true; // 启用摄像机跟随
     } else if (mode === "free") {
         console.log("🎥 切换到自由模式");
-        adtestview();
+        //adtestview();
         //followCamera = false; // 禁用摄像机跟随
     } else if (mode === "broadcast") {
         console.log("📡 启动自动导播模式");
@@ -123,6 +132,7 @@ const updateCameraMode = (mode) => {
     } else if (mode === "track") {
         console.log("🔍 轨迹观察模式");
         //followCamera = false;
+        //TODO 轨迹观察模式还是会调用自动导播模式
         adjustCameraForTrackView();
     }
 };
@@ -158,18 +168,13 @@ const adjustCameraForTrackView = () => {
     camera.lookAt(center);
 };
 
-// 测试
-const adtestview = () => {
-
-    camera.lookAt(airplane.position);
-}
 
 // **更新飞机状态**
 const updateAirplaneState = ({ position, rotation }) => {
     if (!airplane) return;
 
     // 初始化未缩放的飞机位置
-    const rawPosition = new THREE.Vector3(position.x * 0.1, position.y * 0.1, position.z * 0.1);
+    //const rawPosition = new THREE.Vector3(position.x * 0.1, position.y * 0.1, position.z * 0.1);
 
     // 更新飞机位置和旋转（位置乘以0.1）
     airplane.position.set(position.x * 0.1, position.y * 0.1, position.z * 0.1);
@@ -178,9 +183,6 @@ const updateAirplaneState = ({ position, rotation }) => {
     // 添加轨迹点（位置乘以0.1）
     trailVertices.push(position.x * 0.1, position.y * 0.1, position.z * 0.1);
 
-    if (trailVertices.length > 3000) {
-        trailVertices = trailVertices.slice(-3000); // 限制轨迹点数
-    }
 
     // 更新轨迹几何体
     trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(trailVertices, 3));
@@ -191,14 +193,15 @@ const updateAirplaneState = ({ position, rotation }) => {
         const offset = new THREE.Vector3(0, 3, -8); // 摄像机位于飞机后上方
         offset.applyQuaternion(airplane.quaternion); // 让偏移方向跟随飞机旋转
 
-        // 确保目标位置与飞机位置缩放一致
+        // 计算目标位置
         const targetPosition = airplane.position.clone().add(offset);
 
-        // **使用 Lerp（线性插值）平滑移动摄像机**
+        // 使用 Lerp 平滑移动摄像机
         camera.position.lerp(targetPosition, smoothFactor);
 
-        // 让摄像机看向未缩放的飞机位置
-        camera.lookAt(rawPosition);
+        // 更新 OrbitControls 的目标为飞机的位置
+        controls.target.copy(airplane.position);
+        controls.update();
     }
 };
 

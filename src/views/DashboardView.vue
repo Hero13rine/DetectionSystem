@@ -46,8 +46,8 @@ const { isConnected } = useWebSocket(websocketUrl, (latestData) => {
 const moveDrone = () => {
   if (drone3DRef.value) {
     drone3DRef.value.updateAirplaneState({
-      position: { x: Math.random() * 10 - 5, y: Math.random() * 5, z: Math.random() * -10 },
-      rotation: { x: Math.random() * 0.2 - 0.1, y: Math.random() * 0.2 - 0.1, z: Math.random() * 0.2 - 0.1 }
+      position: { x: 0, y: 1, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 }
     });
   }
 };
