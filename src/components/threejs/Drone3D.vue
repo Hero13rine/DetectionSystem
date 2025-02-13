@@ -1,5 +1,5 @@
 <template>
-    <div ref="threeContainer" class="three-container"></div>
+    <div ref="threeContainer" class="three-container">
 
     <!-- 3D 视角控制 UI -->
     <div class="camera-controls">
@@ -10,6 +10,7 @@
             <el-radio-button label="track">轨迹观察</el-radio-button>
         </el-radio-group>
     </div>
+</div>
 </template>
 
 <script setup>
@@ -17,7 +18,7 @@ import { onMounted, onUnmounted, ref, defineExpose } from 'vue';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import * as TWEEN from '@tweenjs/tween.js';
 const threeContainer = ref(null);
 let scene, camera, renderer, controls, airplane;
 const cameraMode = ref("free"); // 默认自由模式
@@ -41,7 +42,7 @@ const initScene = () => {
 
     // 创建渲染器
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth - 470, window.innerHeight - 100);
+    renderer.setSize(window.innerWidth - 480, window.innerHeight - 120);
     threeContainer.value.appendChild(renderer.domElement);
 
     // 添加环境光
@@ -109,6 +110,21 @@ const loadModel = () => {
         fbx.rotation.set(0.2 ,0 , 0);
         //fbx.rotation.set(0, Math.PI / 2, 0);
         //fbx.rotation.set(0, 0, Math.PI / 2);
+
+        // **增强飞机材质**
+        fbx.traverse((child) => {
+            if (child.isMesh) {
+                child.material = new THREE.MeshStandardMaterial({
+                    color: 0xff4500, // **橙色，使其更显眼**
+                    metalness: 0.7,  // **增加金属反光**
+                    roughness: 0.3,  // **适度增加高光**
+                    emissive: 0x111111, // **微弱的自发光，使其更明显**
+                });
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
         scene.add(fbx);
         airplane = fbx;
     }, undefined, (error) => {
@@ -137,35 +153,42 @@ const updateCameraMode = (mode) => {
     }
 };
 
-
-// **自动导播模式：每 5 秒切换不同视角**
+// **自动导播模式：根据无人机状态切换视角**
 const startAutoBroadcast = () => {
     if (autoBroadcastInterval) clearInterval(autoBroadcastInterval);
+
     autoBroadcastInterval = setInterval(() => {
-        const angles = [
-            { x: 20, y: 20, z: 20 },
-            { x: -20, y: 10, z: -20 },
-            { x: 10, y: 20, z: 0 }
-        ];
-        const randomAngle = angles[Math.floor(Math.random() * angles.length)];
-        camera.position.set(randomAngle.x, randomAngle.y, randomAngle.z);
-        camera.lookAt(scene.position);
-    }, 5000);
-};
+        if (!airplane || trailVertices.length < 20) return;
 
-// **轨迹观察模式：调整摄像机适应整个飞行轨迹**
-const adjustCameraForTrackView = () => {
-    if (!airplane) return;
-    const boundingBox = new THREE.Box3().setFromObject(airplane);
-    const center = boundingBox.getCenter(new THREE.Vector3());
-    const size = boundingBox.getSize(new THREE.Vector3());
+        if (cameraMode.value !== "broadcast") {
+            clearInterval(autoBroadcastInterval);
+            return;
+        }
+        // 计算最近 N 个轨迹点的变化趋势
+        //const historySize = 20;
+        const first = new THREE.Vector3(trailVertices[0], trailVertices[1], trailVertices[2]);
+        const last = new THREE.Vector3(
+            trailVertices[trailVertices.length - 3],
+            trailVertices[trailVertices.length - 2],
+            trailVertices[trailVertices.length - 1]
+        );
 
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = camera.fov * (Math.PI / 180);
-    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2));
+        const dx = Math.abs(last.x - first.x);
+        const dz = Math.abs(last.z - first.z);
 
-    camera.position.set(center.x, center.y + cameraDistance, center.z + cameraDistance);
-    camera.lookAt(center);
+        let targetPosition;
+        if (dx > dz) {
+            targetPosition = new THREE.Vector3(40, 20, 0); // **X 方向观察**
+        } else if (dz > dx) {
+            targetPosition = new THREE.Vector3(0, 20, 40); // **Z 方向观察**
+        } else {
+            targetPosition = new THREE.Vector3(0, 20, 0); // **俯瞰视角**
+        }
+
+        // **平滑移动摄像机**
+        camera.position.lerp(targetPosition, 0.8);
+        camera.lookAt(airplane.position);
+    }, 5000); // 每 5 秒调整一次视角
 };
 
 
@@ -205,6 +228,56 @@ const updateAirplaneState = ({ position, rotation }) => {
     }
 };
 
+// **优化后的轨迹观察模式：科学计算俯瞰视角**
+const adjustCameraForTrackView = () => {
+    if (!airplane || trailVertices.length === 0) return;
+
+    // 计算轨迹点的包围盒
+    const positions = new Float32Array(trailVertices);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.computeBoundingBox();
+
+    const boundingBox = geometry.boundingBox;
+    const center = new THREE.Vector3();
+    boundingBox.getCenter(center);
+
+    const size = new THREE.Vector3();
+    boundingBox.getSize(size);
+
+    // 计算最佳摄像机距离
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const distance = maxDim / (2 * Math.tan(fov / 2));
+
+    // **设置 30° 或 45° 斜视角**
+    const tiltAngle = Math.PI / 6; // 30° 斜视角（Math.PI / 4 则为 45°）
+    const altitude = distance * 1.5;
+
+    // 计算摄像机目标位置（保持视角稳定）
+    camera.position.set(
+        center.x + Math.sin(tiltAngle) * altitude,
+        center.y + altitude,
+        center.z + Math.cos(tiltAngle) * altitude
+    );
+    camera.lookAt(center);
+
+    // **平滑过渡到目标位置**
+    new TWEEN.Tween(camera.position)
+        .to({ x: camera.position.x, y: camera.position.y, z: camera.position.z }, 1000)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+
+    new TWEEN.Tween(controls.target)
+        .to({ x: center.x, y: center.y, z: center.z }, 1000)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+
+    // **轨迹观察模式启用后，不再自动更新**
+    cameraMode.value = "track";
+};
+
+
 // **窗口大小变化**
 const onWindowResize = () => {
     if (camera && renderer) {
@@ -235,6 +308,8 @@ defineExpose({ updateAirplaneState });
 .three-container {
     width: 100%;
     height: 100%;
+    position: relative;
+        /* 新增定位上下文 */
 }
 .three-container {
     width: 100%;
