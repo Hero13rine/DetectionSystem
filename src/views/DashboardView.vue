@@ -33,10 +33,12 @@ const operationClass = ref("normal");
 const { isConnected } = useWebSocket(websocketUrl, (latestData) => {
 
   if (drone3DRef.value) {
-    drone3DRef.value.updateAirplaneState(latestData);
+    const {position, rotation} = latestData
+    drone3DRef.value.updateAirplaneState({position, rotation});
   }
   console.log("🚀 接收到数据:", latestData);
   // **解析 operation_class 并更新 faults**
+
   // **解析 operation_class 并更新 faults**
   operationClass.value = latestData.operation_class;
 
