@@ -44,7 +44,16 @@ const _ = (window as any).ResizeObserver;
 </template>
 
 <script setup>
+//import { useWebSocket } from "@/composables/useWebSocket";
+//import { saveLog } from "@/utils/logStorage";
+
+// const { flightInfo } =  useWebSocket("ws://localhost:8765", async (newData) => {
+  
+//   await saveLog({ flightInfo: flightInfo.value, sensor_data: newData });  // **直接存入数据库**
+// });
+
 </script>
+
 
 <style scoped>
 /* 头部样式 */

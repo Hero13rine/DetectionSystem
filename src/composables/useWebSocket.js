@@ -42,14 +42,13 @@ export function useWebSocket(url, onMessageCallback) {
             status.value = latestData.operation_class;
             console.log("🚩 飞行状态更新:", status.value);
           }
-
           // **回调函数通知组件新数据**
           if (onMessageCallback) {
             onMessageCallback(latestData);
           }
         }
 
-        console.log("📥 收到传感器数据:", data.sensor_data);
+        //console.log("📥 收到传感器数据:", data.sensor_data);
       } catch (error) {
         console.error("❌ 消息解析失败:", error);
       }
@@ -59,10 +58,6 @@ export function useWebSocket(url, onMessageCallback) {
       isConnected.value = false;
       console.warn("⚠️ WebSocket 连接关闭，3 秒后重试...");
       setTimeout(() => connect(), 3000);
-    };
-
-    socket.value.onerror = (error) => {
-      console.error("❌ WebSocket 错误:", error);
     };
   };
 

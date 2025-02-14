@@ -23,25 +23,25 @@ import SensorPanel from '@/components/charts/SensorPanel.vue';
 import AlertPanel from '@/components/ui/AlertPanel.vue';
 import LogsPanel from '@/components/ui/LogsPanel.vue';
 import { useWebSocket } from '@/composables/useWebSocket';
-
+import { saveLog } from "@/utils/logStorage";
 
 //初始化
 const drone3DRef = ref(null);
 const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:8765';
 const operationClass = ref("normal");
 
-const { isConnected } = useWebSocket(websocketUrl, (latestData) => {
+const { isConnected, flightInfo } = useWebSocket(websocketUrl, (latestData) => {
 
   if (drone3DRef.value) {
     const {position, rotation} = latestData
     drone3DRef.value.updateAirplaneState({position, rotation});
   }
-  console.log("🚀 接收到数据:", latestData);
+  //console.log("🚀 接收到数据:", latestData);
   // **解析 operation_class 并更新 faults**
 
   // **解析 operation_class 并更新 faults**
   operationClass.value = latestData.operation_class;
-
+  saveLog({ flightInfo: flightInfo.value, sensor_data: latestData }); 
 
 });
 

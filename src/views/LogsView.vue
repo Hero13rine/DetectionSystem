@@ -1,31 +1,32 @@
 <template>
-  <el-container>
-    <el-header>日志回放</el-header>
-    <el-main>
-      <el-card>
-        <h3>历史飞行日志</h3>
-        <el-table :data="logs">
-          <el-table-column prop="timestamp" label="时间"></el-table-column>
-          <el-table-column prop="event" label="事件"></el-table-column>
-        </el-table>
-      </el-card>
-    </el-main>
-  </el-container>
+  <el-card>
+    <h3>飞行日志</h3>
+    <el-table :data="logEntries" style="width: 100%">
+      <el-table-column prop="timestamp" label="时间" width="180"></el-table-column>
+      <el-table-column prop="flight_info.model" label="飞机型号"></el-table-column>
+      <el-table-column prop="flight_info.date" label="飞行时间" width="200"></el-table-column>
+      <el-table-column prop="operation_class" label="故障状态"></el-table-column>
+      <el-table-column label="操作" width="120">
+        <template #default="{ row }">
+          <el-button type="primary" size="small" @click="replayFlight(row)">回放</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-card>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from "vue";
+import { getLogs } from "@/utils/logStorage";
 
-const logs = ref([
-  { timestamp: '2024-02-06 10:00:00', event: '系统启动' },
-  { timestamp: '2024-02-06 10:05:00', event: '无人机起飞' },
-  { timestamp: '2024-02-06 10:10:00', event: 'GPS 信号弱' },
-  { timestamp: '2024-02-06 10:15:00', event: '无人机降落' },
-]);
+const logEntries = ref([]);
+
+const replayFlight = (entry) => {
+  console.log("🎥 开始回放:", entry.flight_info);
+  // **触发 3D 场景回放**
+};
+
+onMounted(async () => {
+  logEntries.value = await getLogs();
+});
 </script>
-
-<style scoped>
-.el-container {
-  padding: 20px;
-}
-</style>
