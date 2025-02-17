@@ -276,6 +276,14 @@ const adjustCameraForTrackView = () => {
 };
 
 
+// **清除轨迹**
+const clearTrail = () => {
+    trailVertices = []; // 清空轨迹点数组
+    trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(trailVertices, 3)); // 更新几何体
+    trailGeometry.needsUpdate = true; // 标记几何体需要更新
+};
+
+
 // **窗口大小变化**
 const onWindowResize = () => {
     if (camera && renderer) {
@@ -299,7 +307,7 @@ onUnmounted(() => {
     window.removeEventListener('resize', onWindowResize);
 });
 
-defineExpose({ updateAirplaneState });
+defineExpose({ updateAirplaneState, clearTrail });
 </script>
 
 <style scoped>

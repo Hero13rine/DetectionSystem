@@ -7,7 +7,7 @@ export function useWebSocket(url, onMessageCallback) {
   const sensorData = ref([]); // 传感器数据队列
   const maxQueueSize = 100; // 最大数据队列长度
   const status = ref("normal"); // 当前飞行状态
-
+  const isListening = ref(true);
   // 初始化 WebSocket 连接
   const connect = () => {
     socket.value = new WebSocket(url);
@@ -18,12 +18,16 @@ export function useWebSocket(url, onMessageCallback) {
     };
 
     socket.value.onmessage = (event) => {
+      if (!isListening.value) return; // **暂停监听时，不处理数据**
       try {
         const data = JSON.parse(event.data);
-        
+
         // console.log("📄 收到飞行信息:", data.flightnfo);
         // 更新飞行信息
-        if (data.flight_info && JSON.stringify(data.flight_info) !== JSON.stringify(flightInfo.value)) {
+        if (
+          data.flight_info &&
+          JSON.stringify(data.flight_info) !== JSON.stringify(flightInfo.value)
+        ) {
           flightInfo.value = data.flight_info;
           // console.log("📄 收到飞行信息:", flightInfo.value);
         }
@@ -61,7 +65,15 @@ export function useWebSocket(url, onMessageCallback) {
       setTimeout(() => connect(), 3000);
     };
   };
-
+  // 切换监听状态
+  const toggleListening = () => {
+    isListening.value = !isListening.value;
+    console.log(
+      isListening.value
+        ? "▶️ 开始监听 WebSocket 数据"
+        : "⏸ 暂停监听 WebSocket 数据"
+    );
+  };
   // 组件挂载时连接
   onMounted(() => {
     connect();
@@ -79,5 +91,7 @@ export function useWebSocket(url, onMessageCallback) {
     flightInfo,
     sensorData,
     status,
+    isListening, // 暴露监听状态
+    toggleListening, // 暴露切换监听的方法
   };
 }
