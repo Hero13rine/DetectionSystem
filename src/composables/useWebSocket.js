@@ -7,7 +7,10 @@ export function useWebSocket(url, onMessageCallback) {
   const sensorData = ref([]); // 传感器数据队列
   const maxQueueSize = 100; // 最大数据队列长度
   const status = ref("normal"); // 当前飞行状态
-  const isListening = ref(true);
+  // 从 localStorage 中读取监听状态，默认为 true
+  const isListening = ref(
+    localStorage.getItem("isListening") === "false" ? false : true
+  );
   // 初始化 WebSocket 连接
   const connect = () => {
     socket.value = new WebSocket(url);
@@ -18,22 +21,13 @@ export function useWebSocket(url, onMessageCallback) {
 
       // 连接成功后，同步前后端状态
       if (!isListening.value) {
-        console.log("暂停");
         sendControlMessage("pause"); // 如果前端是暂停状态，通知后端暂停
       } else {
-        console.log("恢复");
         sendControlMessage("resume"); // 如果前端是监听状态，通知后端恢复
       }
     };
 
     socket.value.onmessage = (event) => {
-      if (!isListening.value) {
-        console.log("暂停");
-        sendControlMessage("pause"); // 如果前端是暂停状态，通知后端暂停
-      } else {
-        console.log("恢复");
-        sendControlMessage("resume"); // 如果前端是监听状态，通知后端恢复
-      } // **暂停监听时，不处理数据**
       try {
         const data = JSON.parse(event.data);
 
@@ -85,6 +79,8 @@ export function useWebSocket(url, onMessageCallback) {
     isListening.value = !isListening.value;
     const action = isListening.value ? "resume" : "pause";
     sendControlMessage(action); // 通知后端暂停或恢复
+    // 将监听状态保存到 localStorage
+    localStorage.setItem("isListening", isListening.value);
     console.log(
       isListening.value
         ? "▶️ 开始监听 WebSocket 数据"
