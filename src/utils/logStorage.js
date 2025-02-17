@@ -30,7 +30,7 @@ const openDB = () => {
 };
 
 // 引入深度比较方法，例如使用 lodash 的 isEqual
-import { isEqual } from 'lodash-es';
+import { isEqual } from "lodash-es";
 
 // **存储日志**
 export const saveLog = async ({ flightInfo, sensor_data }) => {
@@ -41,10 +41,10 @@ export const saveLog = async ({ flightInfo, sensor_data }) => {
     });
     return;
   }
-  console.log("输入数据",{ flightInfo, sensor_data });
+  // console.log("输入数据",{ flightInfo, sensor_data });
   flightInfo = toRaw(flightInfo);
   const flight_id = generateFlightKey(flightInfo);
-  console.log("FLIGHTID", flight_id);
+  //console.log("FLIGHTID", flight_id);
   if (!flight_id) {
     console.error("❌ 无法生成 flight_id，跳过存储");
     return;
@@ -65,7 +65,7 @@ export const saveLog = async ({ flightInfo, sensor_data }) => {
   if (existingLog) {
     // **关键修改：使用深度对比代替 JSON.stringify**
     if (isEqual(existingLog.flightInfo, flightInfo)) {
-      console.log("📌 flight_id 存在，追加数据:", flight_id);
+      // console.log("📌 flight_id 存在，追加数据:", flight_id);
       existingLog.sensor_data.push(sensorDataString);
 
       await new Promise((resolve, reject) => {
@@ -77,7 +77,7 @@ export const saveLog = async ({ flightInfo, sensor_data }) => {
       // **关键修改：生成全新的 flight_id（原ID+冲突标记+时间戳）**
       const conflictId = `${flight_id}_conflict_${Date.now()}`;
       console.warn("⚠️ flight_id 冲突但信息不匹配，新建记录:", conflictId);
-      
+
       await new Promise((resolve, reject) => {
         const request = store.put({
           flight_id: conflictId,

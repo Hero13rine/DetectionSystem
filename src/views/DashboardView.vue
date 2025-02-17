@@ -7,11 +7,14 @@
     <el-aside width="350px">
       <el-button type="primary" @click="moveDrone">模拟移动</el-button>
       <el-button type="danger" @click="clearTrail">清除轨迹</el-button>
-      <el-button type="warning" @click="toggleListening">
-        {{ isListening ? "暂停监听" : "恢复监听" }}
-        <SensorPanel />
-        <AlertPanel :operationClass="operationClass" />
-        <el-alert v-if="!isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
+      <el-button :type="isListening ? 'success' : 'danger'" @click="toggleListening"
+        :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
+        {{ isListening ? "监听中" : "已暂停" }}
+      </el-button>
+      <SensorPanel />
+      <AlertPanel :operationClass="operationClass" />
+      <el-alert v-if="!isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
+      <el-alert v-if="!isListening" type="error">已暂停接收...</el-alert>
     </el-aside>
   </el-container>
 
@@ -37,9 +40,9 @@ const isVisible = computed(() => route.path === "/"); // 只有在 "/" 页面时
 const drone3DRef = ref(null);
 const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:8765';
 const operationClass = ref("normal");
-const isListening = ref(true); // 监听开关
+//const isListening = ref(false); // 监听开关
 
-const { isConnected, flightInfo } = useWebSocket(websocketUrl, (latestData) => {
+const { isConnected, flightInfo, isListening, toggleListening } = useWebSocket(websocketUrl, (latestData) => {
 
   if (drone3DRef.value) {
     const { position, rotation } = latestData
@@ -71,5 +74,7 @@ const clearTrail = () => {
     drone3DRef.value.clearTrail(); // 调用清除轨迹方法
   }
 };
+
+
 
 </script>

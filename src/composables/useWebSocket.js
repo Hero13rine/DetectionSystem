@@ -15,10 +15,25 @@ export function useWebSocket(url, onMessageCallback) {
     socket.value.onopen = () => {
       isConnected.value = true;
       console.log("✅ WebSocket 连接成功");
+
+      // 连接成功后，同步前后端状态
+      if (!isListening.value) {
+        console.log("暂停");
+        sendControlMessage("pause"); // 如果前端是暂停状态，通知后端暂停
+      } else {
+        console.log("恢复");
+        sendControlMessage("resume"); // 如果前端是监听状态，通知后端恢复
+      }
     };
 
     socket.value.onmessage = (event) => {
-      if (!isListening.value) return; // **暂停监听时，不处理数据**
+      if (!isListening.value) {
+        console.log("暂停");
+        sendControlMessage("pause"); // 如果前端是暂停状态，通知后端暂停
+      } else {
+        console.log("恢复");
+        sendControlMessage("resume"); // 如果前端是监听状态，通知后端恢复
+      } // **暂停监听时，不处理数据**
       try {
         const data = JSON.parse(event.data);
 
@@ -68,11 +83,20 @@ export function useWebSocket(url, onMessageCallback) {
   // 切换监听状态
   const toggleListening = () => {
     isListening.value = !isListening.value;
+    const action = isListening.value ? "resume" : "pause";
+    sendControlMessage(action); // 通知后端暂停或恢复
     console.log(
       isListening.value
         ? "▶️ 开始监听 WebSocket 数据"
         : "⏸ 暂停监听 WebSocket 数据"
     );
+  };
+  // 发送控制消息（暂停或恢复）
+  const sendControlMessage = (action) => {
+    if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+      socket.value.send(JSON.stringify({ control: action }));
+      console.log(`📤 发送控制消息: ${action}`);
+    }
   };
   // 组件挂载时连接
   onMounted(() => {
