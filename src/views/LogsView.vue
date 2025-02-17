@@ -1,32 +1,98 @@
 <template>
   <el-card>
     <h3>飞行日志</h3>
+
     <el-table :data="logEntries" style="width: 100%">
-      <el-table-column prop="timestamp" label="时间" width="180"></el-table-column>
       <el-table-column prop="flight_info.model" label="飞机型号"></el-table-column>
       <el-table-column prop="flight_info.date" label="飞行时间" width="200"></el-table-column>
-      <el-table-column prop="operation_class" label="故障状态"></el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column prop="flight_info.failure" label="故障类型"></el-table-column>
+      <el-table-column prop="sensor_data_count" label="传感器数据点数"></el-table-column>
+      <el-table-column label="操作" width="150">
         <template #default="{ row }">
           <el-button type="primary" size="small" @click="replayFlight(row)">回放</el-button>
+          <el-button type="success" size="small" @click="viewSensorData(row)">查看</el-button>
         </template>
       </el-table-column>
     </el-table>
   </el-card>
+
+  <!-- 传感器数据查看弹窗 -->
+  <el-dialog v-model="dialogVisible" title="传感器数据详情" width="1500px" :close-on-click-modal="false">
+    <el-table v-if="selectedLog" :data="selectedLog.sensor_data" style="width: 100%; height: 600px;" max-height="600px"
+      stripe border>
+      <el-table-column v-for="key in sensorDataKeys" :key="key" :prop="key" :label="key">
+        <template #default="{ row }">
+          <pre>{{ formatNestedData(row[key]) }}</pre> <!-- 以 `{}` 形式显示嵌套对象 -->
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <template #footer>
+      <el-button @click="dialogVisible = false">关闭</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { getLogs } from "@/utils/logStorage";
 
 const logEntries = ref([]);
+const dialogVisible = ref(false);
+const selectedLog = ref(null);
 
-const replayFlight = (entry) => {
-  console.log("🎥 开始回放:", entry.flight_info);
-  // **触发 3D 场景回放**
+// **加载日志**
+const loadLogs = async () => {
+  const logs = await getLogs();
+
+  logEntries.value = logs.map(log => ({
+    flight_info: log.flightInfo,
+    sensor_data: log.sensor_data || [],
+    sensor_data_count: log.sensor_data ? log.sensor_data.length : 0
+  }));
+
+  console.log("📂 日志加载成功:", logEntries.value);
 };
 
-onMounted(async () => {
-  logEntries.value = await getLogs();
+// **回放飞行日志**
+const replayFlight = (entry) => {
+  console.log("🎥 开始回放:", entry.flight_info);
+};
+
+// **查看传感器数据**
+const viewSensorData = (entry) => {
+  selectedLog.value = entry;
+  dialogVisible.value = true;
+};
+
+// **动态获取传感器数据表头**
+const sensorDataKeys = computed(() => {
+  if (selectedLog.value && selectedLog.value.sensor_data.length > 0) {
+    return Object.keys(selectedLog.value.sensor_data[0]); // 获取第一条数据的字段
+  }
+  return [];
 });
+
+// **格式化嵌套数据（JSON 格式）**
+const formatNestedData = (data) => {
+  return typeof data === "object" ? JSON.stringify(data, null, 2) : data;
+};
+
+onMounted(loadLogs);
 </script>
+
+<style scoped>
+.el-dialog {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 12px;
+  background: #f8f8f8;
+  padding: 4px;
+  border-radius: 4px;
+}
+</style>

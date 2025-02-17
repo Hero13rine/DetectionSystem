@@ -106,8 +106,6 @@ const loadModel = () => {
     loader.load(jetPath, (fbx) => {
         fbx.scale.set(0.5, 0.5, 0.5);
         fbx.position.set(0, 1, 0); // 将无人机模型放置在原点
-
-        fbx.rotation.set(0.2 ,0 , 0);
         //fbx.rotation.set(0, Math.PI / 2, 0);
         //fbx.rotation.set(0, 0, Math.PI / 2);
 
@@ -281,8 +279,8 @@ const adjustCameraForTrackView = () => {
 // **窗口大小变化**
 const onWindowResize = () => {
     if (camera && renderer) {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const width = window.innerWidth-480;
+        const height = window.innerHeight-120;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
         renderer.setSize(width, height);

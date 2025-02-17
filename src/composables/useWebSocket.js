@@ -20,11 +20,12 @@ export function useWebSocket(url, onMessageCallback) {
     socket.value.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
+        
+        // console.log("📄 收到飞行信息:", data.flightnfo);
         // 更新飞行信息
-        if (data.flight_info && !flightInfo.value) {
+        if (data.flight_info && JSON.stringify(data.flight_info) !== JSON.stringify(flightInfo.value)) {
           flightInfo.value = data.flight_info;
-          console.log("📄 收到飞行信息:", flightInfo.value);
+          // console.log("📄 收到飞行信息:", flightInfo.value);
         }
 
         // 更新传感器数据
