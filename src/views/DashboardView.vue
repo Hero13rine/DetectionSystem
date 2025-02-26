@@ -74,7 +74,4 @@ const clearTrail = () => {
     drone3DRef.value.clearTrail(); // 调用清除轨迹方法
   }
 };
-
-
-
 </script>
