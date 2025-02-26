@@ -5,7 +5,7 @@
       <Drone3D ref="drone3DRef" v-show="isVisible" />
     </el-main>
     <el-aside width="350px">
-      <el-button type="primary" @click="moveDrone">模拟移动</el-button>
+      <el-button type="primary" @click="reset"> reset </el-button>
       <el-button type="danger" @click="clearTrail">清除轨迹</el-button>
       <el-button :type="isListening ? 'success' : 'danger'" @click="toggleListening"
         :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
@@ -60,7 +60,7 @@ watch(flightInfo, (newFlightInfo) => {
     drone3DRef.value.clearTrail(); // 清除现有轨迹
   }
 });
-const moveDrone = () => {
+const reset = () => {
   if (drone3DRef.value) {
     drone3DRef.value.updateAirplaneState({
       position: { x: 0, y: 1, z: 0 },
