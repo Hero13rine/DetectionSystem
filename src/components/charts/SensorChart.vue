@@ -36,17 +36,17 @@ const props = defineProps({
 
 const dialogVisible = ref(false);
 
+// ✅ 默认 **只选中 position 和 rotation**
+const selectedGroups = ref(["position", "rotation"]);
+
 // ✅ 先显示 position 和 rotation，其他数据放后面
 const dataGroups = ref([
   { name: "位置 (position)", key: "position", subKeys: ["x", "y", "z"] },
-  { name: "姿态角度 (rotation)", key: "rotation", subKeys: ["x", "y", "z"] }, // ✅ rotation 弧度 -> 角度
+  { name: "姿态角度 (rotation)", key: "rotation", subKeys: ["x", "y", "z"] },
   { name: "指令角度 (commanded_rotation)", key: "commanded_rotation", subKeys: ["x", "y", "z"] },
   { name: "测量速度 (measured_velocity)", key: "measured_velocity", subKeys: ["x", "y", "z"] },
   { name: "测量角速度 (measured_angular_velocity)", key: "measured_angular_velocity", subKeys: ["x", "y", "z"] },
 ]);
-
-// ✅ 选择的曲线，默认全部选中
-const selectedGroups = ref(["position", "rotation"]);
 
 const chartRef = ref(null);
 let chartInstance = null;
@@ -66,6 +66,9 @@ const updateChart = () => {
   let legendData = [];
 
   dataGroups.value.forEach(group => {
+    // **仅生成选中的数据**
+    if (!selectedGroups.value.includes(group.key)) return;
+
     group.subKeys.forEach(subKey => {
       let jsonKey = `${group.key}.${subKey}`;
       let displayName = `${group.name} ${subKey}`;
@@ -87,17 +90,19 @@ const updateChart = () => {
     });
   });
 
-  // ✅ 生成 ECharts 选项
+  // ✅ **优化 legend 以减少滚动动画的卡顿**
   const option = {
     title: { text: "传感器数据", left: "center" },
     tooltip: { trigger: "axis" },
     legend: {
       data: legendData,
       bottom: "5%",
-      type: "plain", // ✅ 取消滚动动画，减少卡顿
+      type: "scroll", // ✅ 仍然使用滚动方式
       itemWidth: 15, // ✅ 调整图例大小，减少空间占用
+      animationDurationUpdate: 200, // ✅ 缩短动画时间，减少卡顿
+      pageIconSize: 10, // ✅ 缩小翻页按钮，防止影响 UI
       selected: legendData.reduce((acc, name) => {
-        acc[name] = selectedGroups.value.includes(getGroupKeyByName(name));
+        acc[name] = true; // ✅ 默认显示已选数据
         return acc;
       }, {}),
     },
@@ -113,14 +118,6 @@ const updateChart = () => {
 // **获取 JSON 嵌套值**
 const getNestedValue = (obj, path) => {
   return path.split(".").reduce((o, key) => (o && o[key] !== undefined ? o[key] : null), obj);
-};
-
-// **获取曲线名称对应的数据分组 key**
-const getGroupKeyByName = (name) => {
-  for (const group of dataGroups.value) {
-    if (name.includes(group.name)) return group.key;
-  }
-  return "";
 };
 
 // **应用用户选择的设置**
