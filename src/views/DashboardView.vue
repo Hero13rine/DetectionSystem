@@ -11,7 +11,7 @@
         :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
         {{ isListening ? "监听中" : "已暂停" }}
       </el-button>
-      <SensorPanel />
+      <SensorPanel :sensorData="sensorData" />
       <AlertPanel :operationClass="operationClass" />
       <el-alert v-if="!isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
       <el-alert v-if="!isListening" type="error">已暂停接收...</el-alert>
@@ -42,13 +42,14 @@ const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:876
 const operationClass = ref("normal");
 //const isListening = ref(false); // 监听开关
 
-const { isConnected, flightInfo, isListening, toggleListening } = useWebSocket(websocketUrl, (latestData) => {
+const { isConnected, flightInfo, sensorData, isListening, toggleListening } = useWebSocket(websocketUrl, (latestData) => {
 
   if (drone3DRef.value) {
     const { position, rotation } = latestData
     drone3DRef.value.updateAirplaneState({ position, rotation });
   }
-  // console.log("🚀 接收到数据:",flightInfo.value);
+  console.log("🚀 接收到sensordata:", sensorData);
+  console.log("🚀 latestdata:", latestData);
   // **解析 operation_class 并更新 faults** 
   operationClass.value = latestData.operation_class;
   saveLog({ flightInfo: flightInfo.value, sensor_data: latestData });
