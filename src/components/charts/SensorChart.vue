@@ -32,6 +32,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  flightInfo: { // 新增飞行信息 prop
+    type: Object,
+    required: false,
+  },
 });
 
 const dialogVisible = ref(false);
@@ -48,6 +52,18 @@ const dataGroups = ref([
   { name: "测量角速度 (measured_angular_velocity)", key: "measured_angular_velocity", subKeys: ["x", "y", "z"] },
 ]);
 
+// ✅ 定义中文显示名称映射
+const displayNameMap = {
+  position: "位置",
+  rotation: "姿态角度",
+  commanded_rotation: "指令角度",
+  measured_velocity: "测量速度",
+  measured_angular_velocity: "测量角速度",
+  x: "X",
+  y: "Y",
+  z: "Z",
+};
+
 const chartRef = ref(null);
 let chartInstance = null;
 
@@ -63,21 +79,21 @@ const updateChart = () => {
   if (!chartInstance || props.sensorData.length === 0) return;
 
   let series = [];
-  let legendData = [];
+  let legendData = {};
 
   dataGroups.value.forEach(group => {
-    // **仅生成选中的数据**
-    if (!selectedGroups.value.includes(group.key)) return;
-
     group.subKeys.forEach(subKey => {
       let jsonKey = `${group.key}.${subKey}`;
-      let displayName = `${group.name} ${subKey}`;
+      let displayName = `${displayNameMap[group.key]} ${displayNameMap[subKey]}`;
 
-      let dataValues = props.sensorData.map(d => getNestedValue(d, jsonKey));
+      // ✅ 仅在选中时添加数据，否则设为空
+      let dataValues = selectedGroups.value.includes(group.key)
+        ? props.sensorData.map(d => getNestedValue(d, jsonKey))
+        : [];
 
       // ✅ rotation 需要转换为角度
-      if (group.key === "rotation") {
-        dataValues = dataValues.map(v => (v !== null ? v * (180 / Math.PI) : null)); // 弧度 -> 角度
+      if (group.key === "rotation" && dataValues.length > 0) {
+        dataValues = dataValues.map(v => (v !== null ? v * (180 / Math.PI) : null));
       }
 
       series.push({
@@ -86,26 +102,36 @@ const updateChart = () => {
         data: dataValues,
       });
 
-      legendData.push(displayName);
+      legendData[displayName] = selectedGroups.value.includes(group.key);
     });
   });
 
-  // ✅ **优化 legend 以减少滚动动画的卡顿**
+  // ✅ 让 ECharts 识别并正确隐藏未选中曲线
   const option = {
     title: { text: "传感器数据", left: "center" },
-    tooltip: { trigger: "axis" },
-    legend: {
-      data: legendData,
-      bottom: "5%",
-      type: "scroll", // ✅ 仍然使用滚动方式
-      itemWidth: 15, // ✅ 调整图例大小，减少空间占用
-      animationDurationUpdate: 200, // ✅ 缩短动画时间，减少卡顿
-      pageIconSize: 10, // ✅ 缩小翻页按钮，防止影响 UI
-      selected: legendData.reduce((acc, name) => {
-        acc[name] = true; // ✅ 默认显示已选数据
-        return acc;
-      }, {}),
+    tooltip: {
+      trigger: "axis",
+      formatter: function (params) {
+        return params.map(p => `${p.seriesName}: ${p.value.toFixed(2)}`).join("<br>");
+      },
     },
+    axisPointer: {
+      type: "line",
+      label: { show: true },
+    },
+    legend: {
+      data: Object.keys(legendData),
+      bottom: "1%",
+      type: "scroll",
+      itemWidth: 10,
+      animation: false, // ✅ 彻底关闭动画
+      animationDurationUpdate: 0, // ✅ 取消更新动画
+      animationEasingUpdate: "linear", // ✅ 取消缓动
+      pageIconSize: 10,
+      pageButtonGap: 0, // ✅ 防止翻页按钮闪烁
+      selected: legendData, // ✅ 让 ECharts 正确管理显示/隐藏
+    },
+
     grid: { left: "10%", right: "10%", top: "10%", bottom: "20%" },
     xAxis: { type: "category", data: props.sensorData.map((_, i) => i) },
     yAxis: { type: "value" },
@@ -128,6 +154,15 @@ const applySettings = () => {
 
 // **监听数据变化并更新**
 watch(() => props.sensorData, updateChart, { deep: true });
+
+// ✅ 监听 flightInfo 变化，清空图表数据
+watch(() => props.flightInfo, (newVal, oldVal) => {
+  if (chartInstance && JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+    // 清空图表
+    
+    chartInstance.clear();
+  }
+});
 
 onMounted(() => {
   nextTick(() => {

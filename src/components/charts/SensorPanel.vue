@@ -1,11 +1,11 @@
 <template>
     <div class="sensor-panel">
-        <h3>🛠 传感器数据面板</h3>
-        <p v-if="sensorData.length === 0">⏳ 等待数据传入...</p>
-        <p v-else>✅ 数据已接收，数据点数量: {{ sensorData.length }}</p>
+        <div class="sensor-panel-header">
+            <h3>📡 实时传感器数据</h3>
+        </div>
 
         <!-- ✅ 传递数据给 SensorChart.vue -->
-        <SensorChart :sensorData="sensorData" />
+        <SensorChart :sensorData="sensorData" :flightInfo="flightInfo" />
     </div>
 </template>
 
@@ -13,29 +13,24 @@
 import { defineProps, watch } from "vue";
 import SensorChart from "@/components/charts/SensorChart.vue";
 
-// ✅ 接收 `sensorData` 作为 `prop`
+// ✅ 新增 flightInfo 接收
 const props = defineProps({
     sensorData: {
         type: Array,
         required: true,
     },
+    flightInfo: {
+        type: Object,
+        required: false,
+    },
 });
 
-// ✅ 监听 `sensorData` 变化，输出到控制台
-watch(
-    () => props.sensorData,
-    (newData) => {
-        console.log("📡 SensorPanel.vue 接收到的新数据:", newData);
-    },
-    { deep: true }
-);
-</script>
+watch(() => props.sensorData, (newData) => {
+    console.log("📡 SensorPanel.vue 接收到的新数据:", newData);
+}, { deep: true });
 
-<style scoped>
-.sensor-panel {
-    padding: 10px;
-    background: #fff;
-    border-radius: 5px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-}
-</style>
+// ✅ 可以增加对flightInfo的监听用于调试
+watch(() => props.flightInfo, (newInfo) => {
+    console.log("🛩️ SensorPanel.vue 接收到新的飞行信息:", newInfo);
+}, { deep: true });
+</script>

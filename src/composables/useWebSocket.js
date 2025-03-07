@@ -38,6 +38,11 @@ export function useWebSocket(url, onMessageCallback) {
           JSON.stringify(data.flight_info) !== JSON.stringify(flightInfo.value)
         ) {
           flightInfo.value = data.flight_info;
+          sensorData.value.length = 0; // ⚠️ 关键逻辑：飞行任务变化时清空sensorData
+          console.log(
+            "🆕 检测到新飞行任务，sensorData 已清空",
+            flightInfo.value
+          );
           // console.log("📄 收到飞行信息:", flightInfo.value);
         }
 
