@@ -19,7 +19,7 @@
   </el-container>
 
   <el-footer>
-    <LogsPanel />
+    <LogsPanel :flightInfo="flightInfo" :operationClass="operationClass" />
   </el-footer>
 </template>
 <script setup>
