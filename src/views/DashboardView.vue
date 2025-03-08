@@ -45,8 +45,8 @@ const operationClass = ref("normal");
 const { isConnected, flightInfo, sensorData, isListening, toggleListening } = useWebSocket(websocketUrl, (latestData) => {
 
   if (drone3DRef.value) {
-    const { position, rotation } = latestData
-    drone3DRef.value.updateAirplaneState({ position, rotation });
+    const { position, rotation, operation_class } = latestData;
+    drone3DRef.value.updateAirplaneState({ position, rotation, operation_class });
   }
   // **解析 operation_class 并更新 faults** 
   operationClass.value = latestData.operation_class;

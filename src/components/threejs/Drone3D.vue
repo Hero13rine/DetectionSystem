@@ -23,8 +23,9 @@ const threeContainer = ref(null);
 let scene, camera, renderer, controls, airplane;
 const cameraMode = ref("free"); // 默认自由模式
 let autoBroadcastInterval = null; //自动
-let trailVertices = []; // 用于记录轨迹点
-let trailGeometry, trailMaterial, trailLine; // 用于绘制轨迹的几何体、材质和线条
+let normalTrailGeometry, abnormalTrailGeometry, normalTrailLine, abnormalTrailLine;
+let normalTrailVertices = [];
+let abnormalTrailVertices = [];
 let smoothFactor = 0.2;  // 平滑移动比例
 
 
@@ -63,19 +64,48 @@ const initScene = () => {
     const axesHelper = new THREE.AxesHelper(10); // 轴长度 5
     scene.add(axesHelper);
 
-    // **轨迹设置**
+/*     // **轨迹设置**
     trailGeometry = new THREE.BufferGeometry();
     trailMaterial = new THREE.LineBasicMaterial({
-        color: 0xff0000,
+        color: 0x0000ff,
         linewidth: 2,
         depthWrite: false, // 允许轨迹在线条后面仍然可见
         polygonOffset: true,  // 启用偏移
         polygonOffsetFactor: -1,  // 让轨迹稍微“浮起”
-        polygonOffsetUnits: -1
+        polygonOffsetUnits: -1,
+        vertexColors :true
     });
 
     trailLine = new THREE.Line(trailGeometry, trailMaterial);
-    scene.add(trailLine);
+    scene.add(trailLine); */
+    // ====== 重点：初始化两条轨迹（正常&异常） ======
+    // --- 1) 正常轨迹 (蓝色) ---
+    // ===== 1) 正常轨迹：蓝色 =====
+    normalTrailGeometry = new THREE.BufferGeometry();
+    const normalTrailMaterial = new THREE.LineBasicMaterial({
+        color: 0x0000ff,   // 蓝色
+        linewidth: 2,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
+    });
+    normalTrailLine = new THREE.Line(normalTrailGeometry, normalTrailMaterial);
+    scene.add(normalTrailLine);
+
+    // ===== 2) 异常轨迹：红色 =====
+    abnormalTrailGeometry = new THREE.BufferGeometry();
+    const abnormalTrailMaterial = new THREE.LineBasicMaterial({
+        color: 0xff0000,   // 红色
+        linewidth: 2,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
+    });
+    abnormalTrailLine = new THREE.Line(abnormalTrailGeometry, abnormalTrailMaterial);
+    scene.add(abnormalTrailLine);
+
 
     //添加相机控制参数
     controls = new OrbitControls(camera, renderer.domElement);
@@ -137,7 +167,7 @@ const updateCameraMode = (mode) => {
         //followCamera = true; // 启用摄像机跟随
     } else if (mode === "free") {
         console.log("🎥 切换到自由模式");
-        //adtestview();
+        //camera.position.set(0, 15, 30);
         //followCamera = false; // 禁用摄像机跟随
     } else if (mode === "broadcast") {
         console.log("📡 启动自动导播模式");
@@ -156,7 +186,7 @@ const startAutoBroadcast = () => {
     if (autoBroadcastInterval) clearInterval(autoBroadcastInterval);
 
     autoBroadcastInterval = setInterval(() => {
-        if (!airplane || trailVertices.length < 20) return;
+        if (!airplane || normalTrailVertices.length < 20) return;
 
         if (cameraMode.value !== "broadcast") {
             clearInterval(autoBroadcastInterval);
@@ -164,11 +194,11 @@ const startAutoBroadcast = () => {
         }
         // 计算最近 N 个轨迹点的变化趋势
         //const historySize = 20;
-        const first = new THREE.Vector3(trailVertices[0], trailVertices[1], trailVertices[2]);
+        const first = new THREE.Vector3(normalTrailVertices[0], normalTrailVertices[1], normalTrailVertices[2]);
         const last = new THREE.Vector3(
-            trailVertices[trailVertices.length - 3],
-            trailVertices[trailVertices.length - 2],
-            trailVertices[trailVertices.length - 1]
+            normalTrailVertices[normalTrailVertices.length - 3],
+            normalTrailVertices[normalTrailVertices.length - 2],
+            normalTrailVertices[normalTrailVertices.length - 1]
         );
 
         const dx = Math.abs(last.x - first.x);
@@ -191,7 +221,7 @@ const startAutoBroadcast = () => {
 
 
 // **更新飞机状态**
-const updateAirplaneState = ({ position, rotation }) => {
+const updateAirplaneState = ({ position, rotation, operation_class }) => {
     if (!airplane) return;
 
     // 初始化未缩放的飞机位置
@@ -201,14 +231,39 @@ const updateAirplaneState = ({ position, rotation }) => {
     airplane.position.set(position.x * 0.1, position.y * 0.1, position.z * 0.1);
     airplane.rotation.set(rotation.x, rotation.y + Math.PI / 2, rotation.z);
 
-    // 添加轨迹点（位置乘以0.1）
-    trailVertices.push(position.x * 0.1, position.y * 0.1, position.z * 0.1);
+    //轨迹点】分两种情况：
+    //    如果是 normal，则推入 normalTrailVertices，否则推入 abnormalTrailVertices
+    const px = position.x * 0.1;
+    const py = position.y * 0.1;
+    const pz = position.z * 0.1;
+
+    if (operation_class === "normal") {
+        // ------ 正常 => 加到蓝色那条线 ------
+        normalTrailVertices.push(px, py, pz);
+
+        normalTrailGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(normalTrailVertices, 3)
+        );
+        normalTrailGeometry.needsUpdate = true;
+
+    } else {
+        // ------ 异常 => 加到红色那条线 ------
+        abnormalTrailVertices.push(px, py, pz);
+
+        abnormalTrailGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(abnormalTrailVertices, 3)
+        );
+        abnormalTrailGeometry.needsUpdate = true;
+    }
+
+    // 3) 输出 operation_class
+    console.log(operation_class);
 
 
-    // 更新轨迹几何体
-    trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(trailVertices, 3));
-    trailGeometry.needsUpdate = true;
 
+    //处理视角
     if (cameraMode.value === "follow") {
         // 计算目标位置（飞机后方）
         const offset = new THREE.Vector3(0, 3, -8); // 摄像机位于飞机后上方
@@ -228,10 +283,10 @@ const updateAirplaneState = ({ position, rotation }) => {
 
 // **优化后的轨迹观察模式：科学计算俯瞰视角**
 const adjustCameraForTrackView = () => {
-    if (!airplane || trailVertices.length === 0) return;
+    if (!airplane || normalTrailVertices.length === 0) return;
 
     // 计算轨迹点的包围盒
-    const positions = new Float32Array(trailVertices);
+    const positions = new Float32Array(normalTrailVertices);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.computeBoundingBox();
@@ -278,10 +333,25 @@ const adjustCameraForTrackView = () => {
 
 // **清除轨迹**
 const clearTrail = () => {
-    trailVertices = []; // 清空轨迹点数组
-    trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(trailVertices, 3)); // 更新几何体
-    trailGeometry.needsUpdate = true; // 标记几何体需要更新
+    // 1. 清空这两条轨迹的顶点数据
+    normalTrailVertices = [];
+    abnormalTrailVertices = [];
+
+    // 2. 更新正常轨迹几何（让它知道数据长度变为0）
+    normalTrailGeometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(normalTrailVertices, 3)
+    );
+    normalTrailGeometry.needsUpdate = true;
+
+    // 3. 更新异常轨迹几何
+    abnormalTrailGeometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(abnormalTrailVertices, 3)
+    );
+    abnormalTrailGeometry.needsUpdate = true;
 };
+
 
 
 // **窗口大小变化**
