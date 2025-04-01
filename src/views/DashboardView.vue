@@ -62,7 +62,7 @@ const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:876
 const operationClass = ref("normal");
 const isReplaying = computed(() => store.state.replay.isReplaying)
 //回放
-const isPaused = ref(false)
+const isPaused = ref(true)
 const playSpeed = ref(1)
 const sliderValue = ref(0)
 let replayTimer = null
@@ -91,6 +91,7 @@ watch(flightInfo, (newFlightInfo) => {
     drone3DRef.value.clearTrail(); // 清除现有轨迹
   }
 });
+
 const reset = () => {
   if (drone3DRef.value) {
     drone3DRef.value.updateAirplaneState({
@@ -99,6 +100,10 @@ const reset = () => {
     });
   }
 };
+// 倍速切换
+const changeSpeed = () => {
+  if (!isPaused.value) startReplay()
+}
 
 const onSliderChange = (val) => {
   if (store.state.replay.replayData.length === 0) return
@@ -160,6 +165,7 @@ const exitReplay = () => {
   // 可选：重置飞机状态
   if (drone3DRef.value) {
     drone3DRef.value.clearTrail?.()
+    reset();
   }
 }
 
