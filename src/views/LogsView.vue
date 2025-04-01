@@ -35,12 +35,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { getLogs } from "@/utils/logStorage";
-
+import { getLogs, getLog } from "@/utils/logStorage";
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router'
+const router = useRouter()
 const logEntries = ref([]);
 const dialogVisible = ref(false);
 const selectedLog = ref(null);
-
+const store = useStore()
 // **加载日志**
 const loadLogs = async () => {
   const logs = await getLogs();
@@ -55,9 +57,23 @@ const loadLogs = async () => {
 };
 
 // **回放飞行日志**
-const replayFlight = (entry) => {
-  console.log("🎥 开始回放:", entry.flight_info);
-};
+const replayFlight = async (row) => {
+  const flightInfo = row.flight_info
+  const flight_id = `${flightInfo.model}_${flightInfo.date}_${flightInfo.segment || "N/A"}`;
+  const log = await getLog(flight_id)
+
+  if (!log || !log.sensor_data?.length) {
+    console.warn("未找到日志数据")
+    return
+  }
+
+  console.log("✅ 读取日志成功:", log)
+  store.dispatch('replay/loadReplayData', log.sensor_data)
+  console.log("📂 日志加载成功:", log.sensor_data);
+  router.push('/')
+}
+
+
 
 // **查看传感器数据**
 const viewSensorData = (entry) => {
