@@ -1,6 +1,8 @@
 <template>
   <el-container>
     <el-main>
+      <el-alert v-if="isReplaying" title="当前为回放模式" type="info" show-icon :closable="false"
+        style="margin-bottom: 12px" />
       <Drone3D ref="drone3DRef" v-show="isVisible" />
     </el-main>
     <el-aside width="350px">
@@ -10,10 +12,11 @@
         :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
         {{ isListening ? "监听中" : "已暂停" }}
       </el-button>
-      <SensorPanel :sensorData="sensorData" :flightInfo="flightInfo" />
+      <SensorPanel :sensorData="isReplaying ? replaySensorDataList : sensorData" :flightInfo="flightInfo" />
       <AlertPanel :operationClass="operationClass" />
-      <el-alert v-if="!isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
-      <el-alert v-if="!isListening" type="error">已暂停接收...</el-alert>
+      <el-alert v-if="!isReplaying && !isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
+      <el-alert v-if="!isReplaying && !isListening" type="error">已暂停接收...</el-alert>
+
     </el-aside>
   </el-container>
   <el-footer>
@@ -66,6 +69,7 @@ const isPaused = ref(true)
 const playSpeed = ref(1)
 const sliderValue = ref(0)
 let replayTimer = null
+const replaySensorDataList = ref([])  // 这是给 SensorPanel 用的
 
 
 
@@ -100,25 +104,36 @@ const reset = () => {
     });
   }
 };
+
+//清除轨迹
+const clearTrail = () => {
+  if (drone3DRef.value) {
+    drone3DRef.value.clearTrail(); // 调用清除轨迹方法
+  }
+};
+
 // 倍速切换
 const changeSpeed = () => {
   if (!isPaused.value) startReplay()
 }
 
+//进度条拖动
 const onSliderChange = (val) => {
   if (store.state.replay.replayData.length === 0) return
   const frame = store.state.replay.replayData[val]
   store.state.replay.currentIndex = val
   if (frame && drone3DRef.value) {
     drone3DRef.value.updateAirplaneState(frame)
+    operationClass.value = frame.operation_class
+
+    replaySensorDataList.value = store.state.replay.replayData.slice(
+      Math.max(0, val - 100),
+      val + 1
+    )
+
   }
 }
 
-const clearTrail = () => {
-  if (drone3DRef.value) {
-    drone3DRef.value.clearTrail(); // 调用清除轨迹方法
-  }
-};
 // 播放器主逻辑
 const startReplay = () => {
   clearInterval(replayTimer)
@@ -133,6 +148,14 @@ const startReplay = () => {
 
     if (frame && drone3DRef.value) {
       drone3DRef.value.updateAirplaneState(frame)
+      // 替换旧数据，保留全部历史
+      operationClass.value = frame.operation_class  // ✅ 更新警告状态
+      replaySensorDataList.value = store.state.replay.replayData.slice(
+        Math.max(0, index - 100),
+        index + 1
+      )
+
+
     }
 
     if (!store.state.replay.isReplaying) {
@@ -141,6 +164,7 @@ const startReplay = () => {
     }
   }, 250 / playSpeed.value)
 }
+
 // 暂停 / 播放切换
 const togglePause = () => {
   isPaused.value = !isPaused.value
@@ -151,6 +175,7 @@ const togglePause = () => {
   }
 }
 
+//进度条最大值
 const maxFrame = computed(() => {
   const len = store.state.replay.replayData.length
   return len > 0 ? len - 1 : 0
@@ -158,16 +183,27 @@ const maxFrame = computed(() => {
 
 //退出
 const exitReplay = () => {
+  // 停止播放
   clearInterval(replayTimer)
-  store.dispatch('replay/stopReplay')
-  isPaused.value = false
+  isPaused.value = true
+
+  // 清空图表数据
+  replaySensorDataList.value = []
+
+  // 重置状态变量
   sliderValue.value = 0
-  // 可选：重置飞机状态
+  operationClass.value = 'normal'
+
+  // 停止回放标志
+  store.dispatch('replay/stopReplay')
+
+  // 清空轨迹 + 重置姿态
   if (drone3DRef.value) {
     drone3DRef.value.clearTrail?.()
-    reset();
+    reset()
   }
 }
+
 
 // 监听回放状态，一旦开启，就自动 startReplay
 watch(() => store.state.replay.isReplaying, (val) => {
@@ -178,7 +214,6 @@ watch(() => store.state.replay.isReplaying, (val) => {
     startReplay()
   }
 })
-
 
 // 当组件销毁时，清除定时器，防止内存泄漏
 onUnmounted(() => {
