@@ -1,16 +1,16 @@
 <template>
     <div ref="threeContainer" class="three-container">
 
-    <!-- 3D 视角控制 UI -->
-    <div class="camera-controls">
-        <el-radio-group v-model="cameraMode" @change="updateCameraMode">
-            <el-radio-button label="free">自由模式</el-radio-button>
-            <el-radio-button label="follow">尾随模式</el-radio-button>
-            <el-radio-button label="broadcast">自动导播</el-radio-button>
-            <el-radio-button label="track">轨迹观察</el-radio-button>
-        </el-radio-group>
+        <!-- 3D 视角控制 UI -->
+        <div class="camera-controls">
+            <el-radio-group v-model="cameraMode" @change="updateCameraMode">
+                <el-radio-button label="free">自由模式</el-radio-button>
+                <el-radio-button label="follow">尾随模式</el-radio-button>
+                <el-radio-button label="broadcast">自动导播</el-radio-button>
+                <el-radio-button label="track">轨迹观察</el-radio-button>
+            </el-radio-group>
+        </div>
     </div>
-</div>
 </template>
 
 <script setup>
@@ -31,53 +31,50 @@ let smoothFactor = 0.2;  // 平滑移动比例
 
 // **初始化 Three.js 场景**
 const initScene = () => {
-    // 创建场景
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xcccccc);
+    // 创建场景并设置天空蓝背景
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color(0xbfdfff)
 
-    // 创建相机
-    const aspectRatio = window.innerWidth / window.innerHeight;
-    camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
-    // 让相机远离一点，避免视角过近
-    camera.position.set(0, 15, 30); // 原 0, 5, 15 -> 调整为 0, 15, 30
+    // 相机设置
+    const aspectRatio = window.innerWidth / window.innerHeight
+    camera = new THREE.PerspectiveCamera(90, aspectRatio, 0.1, 1000)
+    camera.position.set(0, 10, 20)
 
-    // 创建渲染器
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth - 480, window.innerHeight - 120);
-    threeContainer.value.appendChild(renderer.domElement);
+    // 渲染器设置 + 阴影开启
+    renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setSize(window.innerWidth - 480, window.innerHeight - 120)
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    threeContainer.value.appendChild(renderer.domElement)
 
-    // 添加环境光
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    // ===== 🌤️ 光照系统 =====
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+    scene.add(ambientLight)
 
-    // 添加方向光
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(10, 10, 10);
-    scene.add(directionalLight);
+    const directionalLight = new THREE.DirectionalLight(0xfff4e6, 0.8)
+    directionalLight.position.set(30, 50, 30)
+    directionalLight.castShadow = true
+    directionalLight.shadow.mapSize.width = 1024
+    directionalLight.shadow.mapSize.height = 1024
+    scene.add(directionalLight)
 
+    // ===== 🌍 地面 + 阴影 =====
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(1000, 1000),
+        new THREE.MeshStandardMaterial({ color: 0xeFeFeF })
+    )
+    ground.rotation.x = -Math.PI / 2
+    ground.receiveShadow = true
+    scene.add(ground)
 
-    // **添加参考网格（GridHelper）**
-    const gridHelper = new THREE.GridHelper(100, 100); // 网格大小：50，分割数：50
-    scene.add(gridHelper);
+    // ===== 🧮 网格参考 =====
+    const gridHelper = new THREE.GridHelper(100, 100)
+    scene.add(gridHelper)
 
-    // **添加坐标轴辅助线（AxesHelper）**
-    const axesHelper = new THREE.AxesHelper(10); // 轴长度 5
-    scene.add(axesHelper);
+    // 坐标轴
+    const axesHelper = new THREE.AxesHelper(15)
+    scene.add(axesHelper)
 
-/*     // **轨迹设置**
-    trailGeometry = new THREE.BufferGeometry();
-    trailMaterial = new THREE.LineBasicMaterial({
-        color: 0x0000ff,
-        linewidth: 2,
-        depthWrite: false, // 允许轨迹在线条后面仍然可见
-        polygonOffset: true,  // 启用偏移
-        polygonOffsetFactor: -1,  // 让轨迹稍微“浮起”
-        polygonOffsetUnits: -1,
-        vertexColors :true
-    });
-
-    trailLine = new THREE.Line(trailGeometry, trailMaterial);
-    scene.add(trailLine); */
     // ====== 重点：初始化两条轨迹（正常&异常） ======
     // --- 1) 正常轨迹 (蓝色) ---
     // ===== 1) 正常轨迹：蓝色 =====
@@ -106,7 +103,7 @@ const initScene = () => {
     abnormalTrailLine = new THREE.Line(abnormalTrailGeometry, abnormalTrailMaterial);
     scene.add(abnormalTrailLine);
 
-
+    // ===== 🎮 Orbit 控制器 =====
     //添加相机控制参数
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; // 启用阻尼效果（惯性）
@@ -116,10 +113,10 @@ const initScene = () => {
     controls.maxDistance = 100; // 限制最远距离
     controls.maxPolarAngle = Math.PI / 2; // 限制俯视角度
 
+    // 默认自由模式
+    updateCameraMode("free")
+}
 
-    // 默认启用尾随模式
-    updateCameraMode("free");
-};
 
 // **动画循环**
 const animate = () => {
@@ -152,7 +149,7 @@ const loadModel = () => {
                 child.receiveShadow = true;
             }
         });
-        
+
         scene.add(fbx);
         airplane = fbx;
     }, undefined, (error) => {
@@ -357,8 +354,8 @@ const clearTrail = () => {
 // **窗口大小变化**
 const onWindowResize = () => {
     if (camera && renderer) {
-        const width = window.innerWidth-480;
-        const height = window.innerHeight-120;
+        const width = window.innerWidth - 480;
+        const height = window.innerHeight - 120;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
         renderer.setSize(width, height);
@@ -385,8 +382,9 @@ defineExpose({ updateAirplaneState, clearTrail });
     width: 100%;
     height: 100%;
     position: relative;
-        /* 新增定位上下文 */
+    /* 新增定位上下文 */
 }
+
 .three-container {
     width: 100%;
     height: 100%;
@@ -402,4 +400,3 @@ defineExpose({ updateAirplaneState, clearTrail });
     border-radius: 10px;
 }
 </style>
-

@@ -40,12 +40,6 @@ composables/ Vue 3 组合式 API，管理 WebSocket 连接
 3.1 3D 可视化模块
 目录：src/components/threejs/Drone3D.vue
 
-使用 Three.js 渲染无人机模型
-通过 WebSocket 获取姿态数据
-显示飞行轨迹
-3.2 数据监控模块
-目录：src/components/charts/SensorChart.vue
-
 采用 ECharts 可视化传感器数据
 支持多种数据曲线（速度、高度、角度等）
 3.3 WebSocket 通信模块
@@ -68,7 +62,7 @@ composables/ Vue 3 组合式 API，管理 WebSocket 连接
 
 - [ ] 2、设置中：阈值有 bug
 
-- [ ] 3、需要将操作记录在 logpannel 文件中，这个文件将显示重要的时间点，在日志的界面中
+- [x] 3、需要将操作记录在 logpannel 文件中，这个文件将显示重要的时间点，在日志的界面中
 
 - [x] 4、在 3d 界面中，对于轨迹需要有清除功能，能正确分辨出一个合理的飞行
 
@@ -86,6 +80,5 @@ composables/ Vue 3 组合式 API，管理 WebSocket 连接
 
 - [x] 11、日志与前端联系起来，修改后端脚本，每次传入数据先记录飞机型号（数据集名字记录的信息）然后再日志中更新
 
-- [ ] 12、完成回放功能，
-  - [ ] 并且回放功能应当有进度条
-
+- [x] 12、完成回放功能，
+  - [x] 并且回放功能应当有进度条
