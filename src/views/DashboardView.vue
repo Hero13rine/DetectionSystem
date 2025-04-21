@@ -1,47 +1,48 @@
 <template>
-  <el-container>
-    <el-main>
-      <el-alert v-if="isReplaying" title="当前为回放模式" type="info" show-icon :closable="false"
-        style="margin-bottom: 12px" />
-      <Drone3D ref="drone3DRef" v-show="isVisible" />
-    </el-main>
-    <el-aside width="350px">
-      <el-button type="primary" @click="reset"> reset </el-button>
-      <el-button type="danger" @click="clearTrail">清除轨迹</el-button>
-      <el-button :type="isListening ? 'success' : 'danger'" @click="toggleListening"
-        :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
-        {{ isListening ? "监听中" : "已暂停" }}
-      </el-button>
-      <SensorPanel :sensorData="isReplaying ? replaySensorDataList : sensorData" :flightInfo="flightInfo" />
-      <AlertPanel :operationClass="operationClass" />
-      <el-alert v-if="!isReplaying && !isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
-      <el-alert v-if="!isReplaying && !isListening" type="error">已暂停接收...</el-alert>
+  <el-container class="dashboard-container">
+    <!-- 上部分：3D + 控制栏 -->
+    <el-container class="main-area">
+      <el-main class="main-panel">
+        <el-alert v-if="isReplaying" title="当前为回放模式" type="info" show-icon :closable="false"
+          style="margin-bottom: 12px" />
+        <Drone3D ref="drone3DRef" v-show="isVisible" />
+      </el-main>
 
-    </el-aside>
+      <el-aside class="side-panel" width="350px">
+        <!-- 控件 & 面板 -->
+        <el-button type="primary" @click="reset">reset</el-button>
+        <el-button type="danger" @click="clearTrail">清除轨迹</el-button>
+        <el-button :type="isListening ? 'success' : 'danger'" @click="toggleListening"
+          :icon="isListening ? 'el-icon-check' : 'el-icon-close'">
+          {{ isListening ? "监听中" : "已暂停" }}
+        </el-button>
+        <SensorPanel :sensorData="isReplaying ? replaySensorDataList : sensorData" :flightInfo="flightInfo" />
+        <AlertPanel :operationClass="operationClass" />
+        <el-alert v-if="!isReplaying && !isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
+        <el-alert v-if="!isReplaying && !isListening" type="error">已暂停接收...</el-alert>
+      </el-aside>
+    </el-container>
+
+    <!-- 固定底部：LogsPanel 无滚动 -->
+    <div class="logs-bar">
+      <LogsPanel :flightInfo="flightInfo" :operationClass="operationClass" />
+    </div>
+
+    <!-- 回放控制浮层 -->
+    <div v-if="store.state.replay.isReplaying" class="replay-controls-bar">
+      <el-button circle @click="togglePause" :icon="isPaused ? VideoPlay : VideoPause" />
+      <el-select v-model="playSpeed" @change="changeSpeed" style="width: 80px">
+        <el-option label="1x" :value="1" />
+        <el-option label="2x" :value="2" />
+        <el-option label="4x" :value="4" />
+      </el-select>
+      <el-slider v-model="sliderValue" :min="0" :max="maxFrame" :format-tooltip="formatTooltip"
+        @input="onSliderChange" />
+      <el-button type="danger" plain @click="exitReplay"><i class="el-icon-close"></i> 退出回放</el-button>
+    </div>
   </el-container>
-  <el-footer>
-    <LogsPanel :flightInfo="flightInfo" :operationClass="operationClass" />
-  </el-footer>
-  <!-- DashboardView.vue - template 最底部插入 -->
-  <!-- 🎮 回放控制条浮层 -->
-  <div v-if="store.state.replay.isReplaying" class="replay-controls-bar">
-    <!-- 暂停 / 播放 -->
-    <el-button circle @click="togglePause" :icon="isPaused ? VideoPlay : VideoPause" />
-    <!-- 倍速 -->
-    <el-select v-model="playSpeed" @change="changeSpeed" style="width: 80px">
-      <el-option label="1x" :value="1" />
-      <el-option label="2x" :value="2" />
-      <el-option label="4x" :value="4" />
-    </el-select>
-    <!-- 进度条 -->
-    <el-slider v-model="sliderValue" :min="0" :max="maxFrame" :format-tooltip="formatTooltip" @input="onSliderChange" />
-
-    <el-button type="danger" plain @click="exitReplay">
-      <i class="el-icon-close"></i> 退出回放
-    </el-button>
-
-  </div>
 </template>
+
 
 <script setup>
 //引用部分
@@ -238,5 +239,62 @@ onUnmounted(() => {
   z-index: 9999;
   width: 90%;
   max-width: 960px;
+}
+.dashboard-container {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 上部区域：主内容区（横向） */
+.main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* 中间 3D 区域 */
+.main-panel {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* 控制侧边栏 */
+.side-panel {
+  overflow-y: auto;
+  padding: 16px;
+  background-color: #f5f7fa;
+  box-sizing: border-box;
+}
+
+/* 底部日志栏：固定高度，无滚动 */
+.logs-bar {
+  height: 200px;
+  /* ✅ 根据 log-item 高度适配，确保 log-list 刚好显示 */
+  background: #fff;
+  padding: 12px 20px;
+  border-top: 1px solid #ddd;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* ✅ 禁止自身滚动 */
+  flex-shrink: 0;
+  /* 防止它被压缩掉 */
+}
+/* 回放控制浮层 */
+.replay-controls-bar {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 10px 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 </style>

@@ -86,11 +86,19 @@ onUnmounted(() => {
     border-radius: 8px;
 }
 
+.logs-container {
+    height: 100%;
+    /* 让 el-card 撑满 logs-bar */
+    box-sizing: border-box;
+}
+
 .log-list {
-    list-style: none;
-    padding: 0;
-    max-height: 300px;
+    height: 100%;
     overflow-y: auto;
+    /* ✅ 多条日志可滚动 */
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .time {
