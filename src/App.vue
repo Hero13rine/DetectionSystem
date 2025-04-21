@@ -10,29 +10,21 @@ const _ = (window as any).ResizeObserver;
 
 <template>
   <el-container>
-    <!-- 顶部导航 -->
-    <el-header class="app-header">
-      <!-- 设置 el-menu 的样式，确保所有菜单项可见 -->
-      <el-menu mode="horizontal" router style="flex-grow: 1; overflow-x: auto;">
-        <el-menu-item index="">
-          <router-link to="/">
-            实时监控
-          </router-link>
+    <!-- 顶部导航：只在 meta.showHeader 为 true 的页面显示 -->
+    <el-header v-if="$route.meta.showHeader" class="app-header">
+      <el-menu :default-active="$route.path" mode="horizontal" router style="flex-grow: 1; overflow-x: auto;">
+        <el-menu-item index="/dashboard">
+          <router-link to="/dashboard">实时监控</router-link>
         </el-menu-item>
         <el-menu-item index="/logs">
-          <router-link to="/logs">
-            数据回放
-          </router-link>
+          <router-link to="/logs">数据回放</router-link>
         </el-menu-item>
         <el-menu-item index="/settings">
-          <router-link to="/settings">
-            系统设置
-          </router-link>
+          <router-link to="/settings">系统设置</router-link>
         </el-menu-item>
       </el-menu>
     </el-header>
 
-    <!-- 主体部分：路由视图 -->
     <!-- 主体部分 -->
     <el-main>
       <keep-alive>

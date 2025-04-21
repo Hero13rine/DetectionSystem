@@ -59,7 +59,7 @@ const route = useRoute();
 const store = useStore()
 
 //初始化
-const isVisible = computed(() => route.path === "/"); // 只有在 "/" 页面时才显示
+const isVisible = computed(() => route.path === "/dashboard"); // 只有在 "/" 页面时才显示
 const drone3DRef = ref(null);
 const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:8765';
 const operationClass = ref("normal");

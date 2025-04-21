@@ -1,3 +1,5 @@
+<!-- eslint-disable vue/singleline-html-element-content-newline -->
+<!-- eslint-disable vue/max-attributes-per-line -->
 <template>
   <el-card>
     <h3>📂 飞行数据记录</h3>
@@ -73,7 +75,7 @@ const replayFlight = async (row) => {
   console.log("✅ 读取日志成功:", log)
   store.dispatch('replay/loadReplayData', log.sensor_data)
   console.log("📂 日志加载成功:", log.sensor_data);
-  router.push('/')
+  router.push('/dashboard')
 }
 
 

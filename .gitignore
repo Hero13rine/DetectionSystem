@@ -22,3 +22,5 @@ pnpm-debug.log*
 *.sln
 *.sw?
 node_modules
+dist.zip
+serve-14.2.4.tgz
