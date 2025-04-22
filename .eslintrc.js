@@ -15,5 +15,6 @@ module.exports = {
   rules: {
     "vue/multi-word-component-names": "off", // 关闭组件名称必须多词的规则
     "no-undef": "off", // 关闭 `defineExpose` 未定义的报错
+    "no-unused-vars": "off",
   },
 };
