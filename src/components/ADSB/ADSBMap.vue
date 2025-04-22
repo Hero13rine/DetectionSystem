@@ -60,6 +60,7 @@ onMounted(() => {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapInstance)
+    L.control.scale({ imperial: false }).addTo(mapInstance)
 })
 
 watch(selectedTracks, () => {
