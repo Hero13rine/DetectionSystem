@@ -67,21 +67,18 @@ watch(selectedTracks, () => {
 })
 
 function redrawTracks() {
-    // 清空地图上的旧图层
     Object.values(trackLayerMap).flat().forEach(layer => mapInstance.removeLayer(layer))
 
-    const allLatLng = []  // ✅ 收集所有轨迹坐标，用于 fitBounds()
+    const allLatLngBounds = [] // ✅ 存放所有路径点，用于后续 fitBounds
 
     selectedTracks.value.forEach(track => {
         const title = track.title
         const jsonData = track.data
-
         const lat = jsonData.features.latitude
         const lon = jsonData.features.longitude
         const labels = jsonData.prediction.predicted_labels_name
         const probabilities = jsonData.prediction.probabilities
 
-        // ✅ 提前缓存特征字段
         const groundspeed = jsonData.features.groundspeed || []
         const trackDeg = jsonData.features.track || []
         const verticalRate = jsonData.features.vertical_rate || []
@@ -90,7 +87,6 @@ function redrawTracks() {
 
         if (!lat || !lon || lat.length < 2 || lon.length !== lat.length || !labels) return
 
-        // 划分段
         const segments = []
         let currentLabel = labels[0]
         let currentSegment = [[lat[0], lon[0]]]
@@ -114,6 +110,8 @@ function redrawTracks() {
         }
 
         const layers = []
+        let fullCoords = [] // ✅ 全部轨迹点（用于标记首尾）
+
         segments.forEach((seg) => {
             if (!activeTypes.value.includes(seg.label)) return
 
@@ -128,49 +126,68 @@ function redrawTracks() {
                 weight: 4,
                 opacity: 1
             }).addTo(mapInstance)
+            layers.push(polyline)
 
-            // 收集轨迹点用于地图聚焦
-            allLatLng.push(...seg.coords)
+            allLatLngBounds.push(...seg.coords)
+            fullCoords.push(...seg.coords)
 
-            // 构造 tooltip 内容（点详细信息）
-            const tooltipContent = `
-        <strong>预测机型：</strong> ${legendItems[seg.label]?.name || seg.label}<br/>
-        <strong>段内点信息：</strong><br/>
-        ${seg.coords.map((coord, i) => {
+            seg.coords.forEach((coord, i) => {
                 const globalIndex = seg.start + i
                 const prob = probabilities?.[globalIndex]?.[labelIndex] ?? 0
 
-                const gs = groundspeed?.[globalIndex]
-                const heading = trackDeg?.[globalIndex]
-                const vr = verticalRate?.[globalIndex]
-                const alt = altitude?.[globalIndex]
-                const geoalt = geoaltitude?.[globalIndex]
+                const tooltipContent = `
+                    <strong>预测机型：</strong> ${legendItems[seg.label]?.name || seg.label}<br/>
+                    <strong>经度：</strong> ${coord[1].toFixed(8)}<br/>
+                    <strong>纬度：</strong> ${coord[0].toFixed(8)}<br/>
+                    <strong>地速：</strong> ${groundspeed?.[globalIndex]?.toFixed(2)} kt<br/>
+                    <strong>航向：</strong> ${trackDeg?.[globalIndex]?.toFixed(2)}°<br/>
+                    <strong>垂直速率：</strong> ${verticalRate?.[globalIndex]?.toFixed(2)} m/s<br/>
+                    <strong>高度：</strong> ${altitude?.[globalIndex]?.toFixed(0)} ft<br/>
+                    <strong>地理高度：</strong> ${geoaltitude?.[globalIndex]?.toFixed(0)} ft<br/>
+                    <strong>置信度：</strong> ${prob.toFixed(2)}
+                `
 
-                return `
-            #${i + 1}｜经度: ${coord[1].toFixed(8)}｜纬度: ${coord[0].toFixed(8)}<br/>
-            地速: ${gs?.toFixed(2) ?? '无'} kt，
-            航向: ${heading?.toFixed(2) ?? '无'}°，
-            垂直速率: ${vr?.toFixed(2) ?? '无'} m/s<br/>
-            高度: ${alt?.toFixed(0) ?? '无'} ft，
-            地理高度: ${geoalt?.toFixed(0) ?? '无'} ft，
-            置信度: ${prob.toFixed(2)}<br/>
-          `
-            }).join('<hr style="margin: 4px 0;"/>')}
-      `
+                const marker = L.circleMarker(coord, {
+                    radius: 1,
+                    color: colorMap[seg.label] || '#888',
+                    weight: 1,
+                    fillOpacity: 0.9
+                }).bindTooltip(tooltipContent, { sticky: true }).addTo(mapInstance)
 
-            polyline.bindTooltip(tooltipContent, { sticky: true })
-            layers.push(polyline)
+                layers.push(marker)
+            })
         })
+
+        // ✅ 仅标记整条 track 的起点和终点
+        if (fullCoords.length >= 2) {
+            const startMarker = L.circleMarker(fullCoords[0], {
+                radius: 5,
+                color: '#007bff',
+                fillColor: '#007bff',
+                weight: 2,
+                fillOpacity: 1
+            }).bindTooltip('起点', { permanent: true, direction: 'right' }).addTo(mapInstance)
+            layers.push(startMarker)
+
+            const endMarker = L.circleMarker(fullCoords[fullCoords.length - 1], {
+                radius: 5,
+                color: '#ff0000',
+                fillColor: '#ff0000',
+                weight: 2,
+                fillOpacity: 1
+            }).bindTooltip('终点', { permanent: true, direction: 'right' }).addTo(mapInstance)
+            layers.push(endMarker)
+        }
 
         trackLayerMap[title] = layers
     })
 
-    // ✅ 自动聚焦地图到所有轨迹点
-    if (allLatLng.length > 0) {
-        mapInstance.fitBounds(allLatLng)
+    // ✅ 自动聚焦到所有轨迹坐标点范围
+    if (allLatLngBounds.length > 0) {
+        const bounds = L.latLngBounds(allLatLngBounds)
+        mapInstance.fitBounds(bounds, { padding: [40, 40] })
     }
 }
-
 
 </script>
 
@@ -186,8 +203,8 @@ function redrawTracks() {
 
 .legend-box {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
+    top: 20px;
+    left: 60px;
     background: rgba(255, 255, 255, 0.85);
     padding: 10px 14px;
     border-radius: 8px;
