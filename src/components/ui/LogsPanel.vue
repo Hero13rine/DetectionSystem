@@ -22,7 +22,7 @@ const props = defineProps({
     flightInfo: Object, // 🛫 记录飞机起飞信息
     operationClass: {
         type: String,
-        default: "normal", // 默认正常状态
+        default: "正常", // 默认正常状态
     },
 });
 
@@ -48,7 +48,7 @@ watch(() => props.operationClass, (newStatus, oldStatus) => {
     });
 
     // 🚨 **开启高端霓虹边框**
-    if (newStatus !== "normal") {
+    if (newStatus !== "正常") {
         document.body.classList.add("high-end-alert-border");
     } else {
         document.body.classList.remove("high-end-alert-border");

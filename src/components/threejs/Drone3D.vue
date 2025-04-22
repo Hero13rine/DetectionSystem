@@ -173,7 +173,6 @@ const updateCameraMode = (mode) => {
     } else if (mode === "track") {
         console.log("🔍 轨迹观察模式");
         //followCamera = false;
-        //TODO 轨迹观察模式还是会调用自动导播模式
         adjustCameraForTrackView();
     }
 };
@@ -234,7 +233,7 @@ const updateAirplaneState = ({ position, rotation, operation_class }) => {
     const py = position.y * 0.1;
     const pz = position.z * 0.1;
 
-    if (operation_class === "normal") {
+    if (operation_class === "正常") {
         // ------ 正常 => 加到蓝色那条线 ------
         normalTrailVertices.push(px, py, pz);
 
@@ -392,7 +391,7 @@ defineExpose({ updateAirplaneState, clearTrail });
 
 .camera-controls {
     position: absolute;
-    bottom: 20px;
+    bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.5);

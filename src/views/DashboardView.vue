@@ -63,7 +63,7 @@ const store = useStore()
 const isVisible = computed(() => route.path === "/dashboard"); // 只有在 "/" 页面时才显示
 const drone3DRef = ref(null);
 const websocketUrl = localStorage.getItem('websocketUrl') || 'ws://localhost:8765';
-const operationClass = ref("normal");
+const operationClass = ref("正常");
 const isReplaying = computed(() => store.state.replay.isReplaying)
 //回放
 const isPaused = ref(true)
@@ -193,7 +193,7 @@ const exitReplay = () => {
 
   // 重置状态变量
   sliderValue.value = 0
-  operationClass.value = 'normal'
+  operationClass.value = '正常'
 
   // 停止回放标志
   store.dispatch('replay/stopReplay')

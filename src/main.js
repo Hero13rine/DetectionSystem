@@ -4,7 +4,6 @@ import router from "./router";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import store from "./store";  
-import './assets/main.css' 
 import "leaflet/dist/leaflet.css";
 
 import { ElMessage } from "element-plus";

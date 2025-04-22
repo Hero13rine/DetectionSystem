@@ -2,7 +2,7 @@
   <el-card>
     <h3>故障预警</h3>
 
-    <el-alert v-if="operationClass !== 'normal'" type="error" show-icon>
+    <el-alert v-if="operationClass !== '正常'" type="error" show-icon>
       当前故障：{{ operationClass }}
     </el-alert>
 
@@ -19,7 +19,7 @@ import { defineProps } from 'vue';
 defineProps({
   operationClass: {
     type: String,
-    default: "normal"
+    default: "正常"
   }
 });
 </script>
