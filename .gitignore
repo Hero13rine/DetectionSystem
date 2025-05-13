@@ -24,3 +24,4 @@ pnpm-debug.log*
 node_modules
 dist.zip
 serve-14.2.4.tgz
+dist (2).zip
