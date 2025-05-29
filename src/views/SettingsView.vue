@@ -32,6 +32,10 @@
           <el-form-item label="网格线数量">
             <el-slider v-model="gridDivisions" :min="10" :max="200" :step="10" show-input />
           </el-form-item>
+
+          <el-form-item label="地面大小">
+            <el-slider v-model="groundSize" :min="0" :max="40000" :step="10" show-input />
+          </el-form-item>
         </el-form>
       </el-card>
 
@@ -55,6 +59,7 @@ const DEFAULT_FOLLOW_DISTANCE = 50000
 const DEFAULT_CAMERA_FAR = 10000
 const DEFAULT_AIRPLANE_SCALE = 0.5
 const DEFAULT_GRID_DIVISIONS = 160
+const DEFAULT_GROUND_SIZE = 1000
 const DEFAULT_WS_URL = 'ws://localhost:8765'
 
 // ========== ref 定义 ==========
@@ -63,6 +68,7 @@ const maxFollowDistance = ref(Number(localStorage.getItem('maxFollowDistance')) 
 const cameraFar = ref(Number(localStorage.getItem('cameraFar')) || DEFAULT_CAMERA_FAR)
 const airplaneScale = ref(Number(localStorage.getItem('airplaneScale')) || DEFAULT_AIRPLANE_SCALE)
 const gridDivisions = ref(Number(localStorage.getItem('gridDivisions')) || DEFAULT_GRID_DIVISIONS)
+const groundSize = ref(Number(localStorage.getItem('groundSize')) || DEFAULT_GROUND_SIZE)
 
 // ========== 保存逻辑 ==========
 const saveSettings = () => {
@@ -71,6 +77,7 @@ const saveSettings = () => {
   localStorage.setItem('cameraFar', cameraFar.value)
   localStorage.setItem('airplaneScale', airplaneScale.value)
   localStorage.setItem('gridDivisions', gridDivisions.value)
+  localStorage.setItem('groundSize', groundSize.value)
 }
 
 // ========== 重置默认 ==========
@@ -80,6 +87,7 @@ const resetDefaults = () => {
   cameraFar.value = DEFAULT_CAMERA_FAR
   airplaneScale.value = DEFAULT_AIRPLANE_SCALE
   gridDivisions.value = DEFAULT_GRID_DIVISIONS
+  groundSize.value = DEFAULT_GROUND_SIZE
 }
 
 // ========== 页面跳转 ==========

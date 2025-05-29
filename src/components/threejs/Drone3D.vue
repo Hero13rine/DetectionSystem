@@ -64,16 +64,18 @@ const initScene = () => {
     directionalLight.shadow.mapSize.height = 1024
     scene.add(directionalLight)
 
+    const groundSize = Number(localStorage.getItem('groundSize')) || 1000;
     // ===== 🌍 地面 + 阴影 =====
     const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(10000, 10000),
+        new THREE.PlaneGeometry(groundSize, groundSize),
         new THREE.MeshStandardMaterial({ color: 0xeFeFeF })
     )
+    console.log('🚧 groundSize =', groundSize)
     ground.rotation.x = -Math.PI / 2
     ground.receiveShadow = true
     scene.add(ground)
 
-    const gridSize = 8000;
+    const gridSize = groundSize * 0.9;
     const divisions = Number(localStorage.getItem('gridDivisions')) || 160;
 
     // 每格 50m
@@ -82,7 +84,7 @@ const initScene = () => {
     scene.add(gridHelper);
 
     // 坐标轴
-    const axesHelper = new THREE.AxesHelper(15)
+    const axesHelper = new THREE.AxesHelper(groundSize * 0.2)
     scene.add(axesHelper)
 
     // ====== 重点：初始化两条轨迹（正常&异常） ======
