@@ -25,6 +25,10 @@
             <el-slider v-model="cameraFar" :min="1000" :max="100000" :step="1000" show-input />
           </el-form-item>
 
+          <el-form-item label="相机近裁剪面">
+            <el-slider v-model="cameraNear" :min="0.01" :max="10" :step="0.01" show-input />
+          </el-form-item>
+
           <el-form-item label="飞机模型缩放比例">
             <el-slider v-model="airplaneScale" :min="0.1" :max="5" :step="0.1" :precision="2" show-input />
           </el-form-item>
@@ -57,6 +61,7 @@ import { useRouter } from 'vue-router'
 // ========== 默认值 ==========
 const DEFAULT_FOLLOW_DISTANCE = 50000
 const DEFAULT_CAMERA_FAR = 10000
+const DEFAULT_CAMERA_NEAR = 0.1
 const DEFAULT_AIRPLANE_SCALE = 0.5
 const DEFAULT_GRID_DIVISIONS = 160
 const DEFAULT_GROUND_SIZE = 1000
@@ -66,6 +71,7 @@ const DEFAULT_WS_URL = 'ws://localhost:8765'
 const websocketUrl = ref(localStorage.getItem('websocketUrl') || DEFAULT_WS_URL)
 const maxFollowDistance = ref(Number(localStorage.getItem('maxFollowDistance')) || DEFAULT_FOLLOW_DISTANCE)
 const cameraFar = ref(Number(localStorage.getItem('cameraFar')) || DEFAULT_CAMERA_FAR)
+const cameraNear = ref(Number(localStorage.getItem('cameraNear')) || DEFAULT_CAMERA_NEAR)
 const airplaneScale = ref(Number(localStorage.getItem('airplaneScale')) || DEFAULT_AIRPLANE_SCALE)
 const gridDivisions = ref(Number(localStorage.getItem('gridDivisions')) || DEFAULT_GRID_DIVISIONS)
 const groundSize = ref(Number(localStorage.getItem('groundSize')) || DEFAULT_GROUND_SIZE)
@@ -75,6 +81,7 @@ const saveSettings = () => {
   localStorage.setItem('websocketUrl', websocketUrl.value)
   localStorage.setItem('maxFollowDistance', maxFollowDistance.value)
   localStorage.setItem('cameraFar', cameraFar.value)
+  localStorage.setItem('cameraNear', cameraNear.value)
   localStorage.setItem('airplaneScale', airplaneScale.value)
   localStorage.setItem('gridDivisions', gridDivisions.value)
   localStorage.setItem('groundSize', groundSize.value)

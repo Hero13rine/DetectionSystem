@@ -43,6 +43,8 @@ const initScene = () => {
     // 扩展远裁剪面，适应超大场景
     const savedFar = Number(localStorage.getItem('cameraFar')) || 10000
     camera.far = savedFar;
+    const savedNear = Number(localStorage.getItem('cameraNear')) || 10000
+    camera.near = savedNear;
     console.log(savedFar);
     camera.updateProjectionMatrix();
 
@@ -100,6 +102,7 @@ const initScene = () => {
         polygonOffsetUnits: -1
     });
     normalTrailLine = new THREE.Line(normalTrailGeometry, normalTrailMaterial);
+    normalTrailLine.frustumCulled = false;
     scene.add(normalTrailLine);
 
     // ===== 2) 异常轨迹：红色 =====
@@ -113,6 +116,7 @@ const initScene = () => {
         polygonOffsetUnits: -1
     });
     abnormalTrailLine = new THREE.Line(abnormalTrailGeometry, abnormalTrailMaterial);
+    abnormalTrailLine.frustumCulled = false;
     scene.add(abnormalTrailLine);
 
     // ===== 🎮 Orbit 控制器 =====
