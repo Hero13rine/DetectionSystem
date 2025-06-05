@@ -26,6 +26,12 @@ let autoBroadcastInterval = null; //自动
 let normalTrailGeometry, abnormalTrailGeometry, normalTrailLine, abnormalTrailLine;
 let normalTrailVertices = [];
 let abnormalTrailVertices = [];
+//601 特供
+let normalTrail2Geometry, normalTrail2Line;
+let lastOperationClass = "正常";
+let normalTrail2Vertices = [];
+let switchedToSecondNormal;
+
 let smoothFactor = 0.2;  // 平滑移动比例
 let hasInitializedCamera = false;
 let autoTrackLoopTimer = null;
@@ -119,6 +125,21 @@ const initScene = () => {
     abnormalTrailLine.frustumCulled = false;
     scene.add(abnormalTrailLine);
 
+    // ===== 3) 第二段轨迹 =====
+    // 第二条正常轨迹
+    normalTrail2Geometry = new THREE.BufferGeometry();
+    const normalTrail2Material = new THREE.LineBasicMaterial({
+        color: 0x0000ff,
+        linewidth: 2,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1
+    });
+    normalTrail2Line = new THREE.Line(normalTrail2Geometry, normalTrail2Material);
+    normalTrail2Line.frustumCulled = false;
+    scene.add(normalTrail2Line);
+
+
     // ===== 🎮 Orbit 控制器 =====
     //添加相机控制参数
     controls = new OrbitControls(camera, renderer.domElement);
@@ -208,29 +229,40 @@ const updateCameraMode = (mode) => {
 const updateAirplaneState = ({ position, rotation, operation_class }) => {
     if (!airplane) return;
 
-    // 初始化未缩放的飞机位置
-    //const rawPosition = new THREE.Vector3(position.x * 0.1, position.y * 0.1, position.z * 0.1);
-
     // 更新飞机位置和旋转（位置乘以0.1）
     airplane.position.set(position.x * 0.1, position.y * 0.1, position.z * 0.1);
     airplane.rotation.set(rotation.x, rotation.y + Math.PI / 2, rotation.z);
 
-    //轨迹点】分两种情况：
-    //    如果是 normal，则推入 normalTrailVertices，否则推入 abnormalTrailVertices
+    // 轨迹点】分两种情况：
     const px = position.x * 0.1;
     const py = position.y * 0.1;
     const pz = position.z * 0.1;
 
     if (operation_class === "正常") {
-        // ------ 正常 => 加到蓝色那条线 ------
-        normalTrailVertices.push(px, py, pz);
+        // ===== 【新增】检测是否需要切换到第二条 normalTrail =====
+        if (lastOperationClass !== "正常" && lastOperationClass !== null) {
+            switchedToSecondNormal = true;
+        }
 
-        normalTrailGeometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute(normalTrailVertices, 3)
-        );
-        normalTrailGeometry.needsUpdate = true;
+        if (!switchedToSecondNormal) {
+            // ------ 第一条正常轨迹 => 加到 normalTrailVertices ------
+            normalTrailVertices.push(px, py, pz);
 
+            normalTrailGeometry.setAttribute(
+                'position',
+                new THREE.Float32BufferAttribute(normalTrailVertices, 3)
+            );
+            normalTrailGeometry.needsUpdate = true;
+        } else {
+            // ------ 第二条正常轨迹 => 加到 normalTrail2Vertices ------
+            normalTrail2Vertices.push(px, py, pz);
+
+            normalTrail2Geometry.setAttribute(
+                'position',
+                new THREE.Float32BufferAttribute(normalTrail2Vertices, 3)
+            );
+            normalTrail2Geometry.needsUpdate = true;
+        }
     } else {
         // ------ 异常 => 加到红色那条线 ------
         abnormalTrailVertices.push(px, py, pz);
@@ -242,12 +274,13 @@ const updateAirplaneState = ({ position, rotation, operation_class }) => {
         abnormalTrailGeometry.needsUpdate = true;
     }
 
-    // 3) 输出 operation_class
+    // 记录上一个状态
+    lastOperationClass = operation_class;
+
+    // 输出 operation_class
     console.log(operation_class);
 
-
-
-    //处理视角
+    // 处理视角
     if (cameraMode.value === "follow") {
         // 计算目标位置（飞机后方）
         const baseOffset = new THREE.Vector3(0, 3, -8);
@@ -463,11 +496,12 @@ const stopAutoTrackLoop = () => {
 
 // **清除轨迹**
 const clearTrail = () => {
-    // 1. 清空这两条轨迹的顶点数据
+    // 1. 清空这三条轨迹的顶点数据
     normalTrailVertices = [];
     abnormalTrailVertices = [];
+    normalTrail2Vertices = [];
 
-    // 2. 更新正常轨迹几何（让它知道数据长度变为0）
+    // 2. 更新正常轨迹1几何（让它知道数据长度变为0）
     normalTrailGeometry.setAttribute(
         'position',
         new THREE.Float32BufferAttribute(normalTrailVertices, 3)
@@ -480,6 +514,13 @@ const clearTrail = () => {
         new THREE.Float32BufferAttribute(abnormalTrailVertices, 3)
     );
     abnormalTrailGeometry.needsUpdate = true;
+
+    // 4. 更新正常轨迹2几何
+    normalTrail2Geometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(normalTrail2Vertices, 3)
+    );
+    normalTrail2Geometry.needsUpdate = true;
 };
 
 
