@@ -20,6 +20,10 @@
         <AlertPanel :operationClass="operationClass" />
         <el-alert v-if="!isReplaying && !isConnected" type="error">WebSocket 连接断开，正在尝试重连...</el-alert>
         <el-alert v-if="!isReplaying && !isListening" type="error">已暂停接收...</el-alert>
+        <el-button @click="$router.push('/dashboard/data-monitor')">
+          数据监控
+        </el-button>
+
       </el-aside>
     </el-container>
 
@@ -56,6 +60,7 @@ import { useWebSocket } from '@/composables/useWebSocket';
 import { saveLog } from "@/utils/logStorage";
 import { useStore } from 'vuex'
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router';
 const route = useRoute();
 const store = useStore()
 
